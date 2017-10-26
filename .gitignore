@@ -71,3 +71,7 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+/*.jks
+
+## Project-specific rules
+.jks

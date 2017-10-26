@@ -1,0 +1,19 @@
+apply plugin: "com.android.library"
+
+dependencies {
+    compile "com.android.support:appcompat-v7:25.3.1"
+    compile "com.android.support:support-v4:25.3.1"
+    compile 'com.google.android.gms:play-services-auth:11.0.1'
+    compile "com.google.android.gms:play-services-games:11.0.1"
+    compile "com.google.android.gms:play-services-plus:11.0.1"
+}
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion "23.0.3"
+
+    defaultConfig {
+        minSdkVersion 15
+        targetSdkVersion 23
+    }
+}
