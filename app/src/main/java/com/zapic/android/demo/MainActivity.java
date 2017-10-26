@@ -35,8 +35,6 @@ public class MainActivity extends FragmentActivity implements
     private void connect() {
         if (mGoogleApiClient != null && !mGoogleApiClient.isConnected()) {
             mGoogleApiClient.connect(GoogleApiClient.SIGN_IN_MODE_OPTIONAL);
-            Log.d("MyTag","Till here 2");
-
         }
     }
 
@@ -50,7 +48,6 @@ public class MainActivity extends FragmentActivity implements
         connect();
 
         if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
-            Log.d("MyTag","Till here");
             Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
             startActivityForResult(signInIntent, RC_SIGN_IN);
         }
@@ -113,17 +110,9 @@ public class MainActivity extends FragmentActivity implements
         // Result returned from launching the Intent from
         //   GoogleSignInApi.getSignInIntent(...);
         if (requestCode == RC_SIGN_IN) {
-            Log.d("MyTag","Pass one");
             GoogleSignInResult googleSignInResult = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
             if (googleSignInResult != null) {
                 Status status = googleSignInResult.getStatus();
-                if(status.hasResolution()){
-                    Log.d("MyTag","Resolution Exsists");
-                }else {
-                    Log.d("MyTag","Resolution Doesnot exsits.");
-                }
-
-                Log.d("MyTag",googleSignInResult.getStatus().toString());
                 if (googleSignInResult.isSuccess()) {
 
                     Log.d("ZAPIC", "Success with silentSignIn: " + status);
@@ -230,6 +219,5 @@ public class MainActivity extends FragmentActivity implements
 
             }
         }
-        Log.d("MyTag",connectionResult.toString());
     }
 }
