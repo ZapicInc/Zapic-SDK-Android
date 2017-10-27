@@ -7,7 +7,10 @@ import android.os.Debug;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -82,14 +85,39 @@ public class MainActivity extends FragmentActivity implements
     }
 
     private void showLogin() {
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction transaction = fragmentManager.beginTransaction();
+        transaction.setCustomAnimations(R.anim.slide_in_left,R.anim.slide_out_right);
+
         LoginFragment fragment = new LoginFragment();
-        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment).commit();
+        transaction.replace(R.id.fragment_container, fragment );
+        transaction.commit();
+
     }
 
     private void showLogout() {
+
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction transaction = fragmentManager.beginTransaction();
+        transaction.setCustomAnimations(R.anim.slide_in_right,R.anim.slide_out_left);
+
         LogoutFragment fragment = new LogoutFragment();
-        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment).commit();
+        transaction.replace(R.id.fragment_container, fragment );
+        transaction.commit();
     }
+
+    private  void loadWebView(){
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction transaction = fragmentManager.beginTransaction();
+        transaction.setCustomAnimations(R.anim.slide_in_right,R.anim.slide_out_left);
+
+        ZapicFragment fragment = new ZapicFragment();
+        transaction.replace(R.id.fragment_container, fragment );
+        transaction.addToBackStack(null);
+        transaction.commit();
+
+    }
+
 
     @Override
     public void onLogin() {
@@ -102,6 +130,13 @@ public class MainActivity extends FragmentActivity implements
         logout();
         showLogin();
     }
+
+    @Override
+    public  void loadZapicWebView()
+    {
+        loadWebView();
+    }
+
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -161,6 +196,8 @@ public class MainActivity extends FragmentActivity implements
     protected void onStart() {
         super.onStart();
         connect();
+
+
     }
 
     @Override

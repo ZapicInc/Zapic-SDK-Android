@@ -29,7 +29,19 @@ public class ZapicFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view =  inflater.inflate(R.layout.fragment_zapic, container, false);
         WebView myWebView = (WebView) view.findViewById(R.id.webview);
-        myWebView.loadUrl("http://www.google.com");
+        //myWebView.loadUrl("http://www.google.com");
+        String url = "https://client.zapic.net";
+        myWebView.getSettings().setDomStorageEnabled(true);
+        myWebView.getSettings().setSupportZoom(false);
+        myWebView.getSettings().setBuiltInZoomControls(false);
+        myWebView.getSettings().setSaveFormData(false);
+        myWebView.clearCache(true);
+
+
+
+        myWebView.getSettings().setJavaScriptEnabled(true);
+
+        myWebView.loadUrl(url);
         return view;
     }
 }
