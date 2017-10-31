@@ -2,13 +2,22 @@
 <items version="2" >
 
     <item
-        is-multidex="true"
-        jar="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\incremental-classes\debug\instant-run-bootstrap.jar"
-        jumboMode="true"
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\47d96618bd4847f715729d810e9bc96d59411395\output\jars\classes.jar"
+        jumboMode="false"
         optimize="true"
         revision="25.0.3"
-        sha1="407196fa1e5d247d880ab805d278d467bad99857">
-        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\transforms\dex\debug\folders\1000\10000\instant-run-bootstrap_5cbaba78c9e6f346b3577ae1487b137ec9fba48a\classes.dex" />
+        sha1="052f5f840f21174a3ecf6544130194e2652cbb73">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_7ac11dc3dfe313c05cd81b61cb7204e144eb701b.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\ed5ac2cdfe7f623f2b4ae6c572d693bfbb124268\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="150252b33b00274cc868578ade018fda0d43a3eb">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_85f874a45fb26be49f69e87d6d1378ed5a879c47.jar" />
     </item>
     <item
         is-multidex="true"
@@ -18,6 +27,186 @@
         revision="25.0.3"
         sha1="3be78ebc2706b2e1fe2f12d5726887a92d6c183b">
         <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\transforms\dex\debug\folders\1000\10000\instant-run_376d3cdb0270ee29c978e1809e5f243b0fc9c430\classes.dex" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\AppData\Local\Android\sdk\extras\m2repository\com\android\support\constraint\constraint-layout-solver\1.0.2\constraint-layout-solver-1.0.2.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="b9cd8fc6bd15cb915735d34535db30ece0c44603">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\constraint-layout-solver-1.0.2_bf55526fd1cec908ac97f71ba8f2ff5f0a65cea2.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\a868d76f8fcd9ec686b55fa1fc562c23e4a4b3e3\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="44ee06abb66da30f5855e6bf54574e64cdcd982a">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_d81a1b804d52f814ee49377c6e9c442bd4649635.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\505d7fd2e79a16ef0591125a105ff8cf00cf97a9\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="6178e31397c24ab1bfc09766832cdcf519621eb7">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_a0998ec4e15f7de8e3f280f140abec5317f70d70.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\ae8f7d43c2479ea68a1e4c0d19fc1e1d698d54bd\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="1ac97d7aa6a93902b6b0471fabf6525970d21f56">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_444ab3d520ad306edb5f606b71dc4bb267f33ef9.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\5cbee9e34aae2fcf12fd7e744d79604b5ec3c7df\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="cc1683c11baff90e41b9a6bd2d0861a35b2c5735">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_e3ca532b4df42a07065929856814c1760ed888b5.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\BaseGameUtils\build\intermediates\bundles\default\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="a9c0cf40cb792d0ea3846cfe59db6f655883b82d">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_21abc3d458dde697026b2f393023daec1d8d1eb2.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\09b27541ba9e15f15072d3e13c0a302524186eee\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="d4ba7399a1a4f5c998b5ce4f6bf33a2e8347820c">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_656917a1a53a1d645170edf243f20b8dc1cf3770.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\2ac5883b8c0e904c5c674840b12c583e2dd2675e\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="6ef31f1555bb4cc513ec8d52711365a8b89f3600">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_1c1755b8c545e0956b08947a624e3bc76457a276.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\AppData\Local\Android\sdk\extras\android\m2repository\com\android\support\support-annotations\25.3.1\support-annotations-25.3.1.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="bf8841d29fa39e077730e7a91222c2ce269fa7c9">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\support-annotations-25.3.1_a9797ad9c0dd09f58b127137f7232e357508db36.jar" />
+    </item>
+    <item
+        is-multidex="true"
+        jar="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\incremental-classes\debug\instant-run-bootstrap.jar"
+        jumboMode="true"
+        optimize="true"
+        revision="25.0.3"
+        sha1="c1abb458f217e246c8f8c54e0f00e308988f40a5">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\transforms\dex\debug\folders\1000\10000\instant-run-bootstrap_5cbaba78c9e6f346b3577ae1487b137ec9fba48a\classes.dex" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\2930adac1933df15aabd8407e89f967c8585cbd9\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="47635644d0d5c103c1dd8360549eb9ba3225c7d3">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_fcef0a07d74a8e206d16a2863a6a0c879438c818.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\6027165d6460d2bcc189a3c2ffe0e13000c85966\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="45f697922e6f072daa12f8a2995dc77ab03c11da">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_7f85368ebcda3fe2e3a4e952f36ebea1eacef9e0.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\f5c158be2f0ba9ac0d8718723094f1bb07bad8f3\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="d695dc4247690369d66c022c6d18190155c61fcd">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_70b30efd64747c91b773b4ee1e8e65250e1b350c.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\cfe163eecf799e3285b6d44408115c819fd532a5\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="efb8cb62d47d157c29d1521daac7eefd4cb881ee">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_58047740b27093a9e59583f7d9a31e403c73a97e.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\d731a212e48857b76410f67b2286aafff9582b9c\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="7f21fe29ab841f25f937bdb518862fc8d967a49d">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_4ffe26a9885c5235257a2ddac1e1a0d530d8b494.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\8e9f8f4213663dea500952e33845753b6e2ae3c4\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="da27a32db6af8954ee8061537c7d476fcb1df46f">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_eefe9c4c76e8672db773bd1f2d5da47c5442914c.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\3bd8370ada510a7b78f57f8524f32639265b06f1\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="4a26a1154d053ab11aaf4c3967c42a4d66390991">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_c04027325079097de7b2059f27b2063a1508847c.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\1fe8da79f6b93d7a00655bf968b6989fd88b4b43\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="90095b555b72205db6f9b93aca3cb9978d1e3344">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_0ff915ca207b47db3c5797b6fec51e9666fbbfbe.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\3c57ddb1007d1f5b0db846f12bf2f34334f2c1e9\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="d7c42c80f6509b9ea4db28ca7859ffae08ec5741">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_3dea83c9eb976b337a829b0f9f574ee9c7113042.jar" />
+    </item>
+    <item
+        is-multidex="false"
+        jar="C:\Users\yashasvi\.android\build-cache\d291cf5fa2d7ad59ba8a6d55a596c94b1dda5275\output\jars\classes.jar"
+        jumboMode="false"
+        optimize="true"
+        revision="25.0.3"
+        sha1="21160c044ba984fb2e33b833c89a496becb85cfd">
+        <dex dex="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\app\build\intermediates\pre-dexed\debug\classes_aa01688e4074817ca53cfbabb5f7ae5d45def6d7.jar" />
     </item>
 
 </items>
