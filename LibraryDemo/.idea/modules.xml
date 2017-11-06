@@ -2,9 +2,12 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/DemoLibrary.iml" filepath="$PROJECT_DIR$/DemoLibrary.iml" />
+      <module fileurl="file://C:\Users\yashasvi\Desktop\Zapic-SDK-Android\LibraryDemo\DemoLibrary.iml" filepath="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\LibraryDemo\DemoLibrary.iml" />
+      <module fileurl="file://$PROJECT_DIR$/LibraryDemo.iml" filepath="$PROJECT_DIR$/LibraryDemo.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://C:\Users\yashasvi\Desktop\Zapic-SDK-Android\LibraryDemo\app\app.iml" filepath="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\LibraryDemo\app\app.iml" />
       <module fileurl="file://$PROJECT_DIR$/zapiclibrary/zapiclibrary.iml" filepath="$PROJECT_DIR$/zapiclibrary/zapiclibrary.iml" />
+      <module fileurl="file://C:\Users\yashasvi\Desktop\Zapic-SDK-Android\LibraryDemo\zapiclibrary\zapiclibrary.iml" filepath="C:\Users\yashasvi\Desktop\Zapic-SDK-Android\LibraryDemo\zapiclibrary\zapiclibrary.iml" />
     </modules>
   </component>
 </project>

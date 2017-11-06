@@ -3,6 +3,9 @@ package com.zapic.android.zapiclibrary;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Fragment;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -10,6 +13,7 @@ import android.os.Message;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,7 +30,7 @@ import javax.net.ssl.HttpsURLConnection;
 public class WebViewUtilities {
     @SuppressLint("SetJavaScriptEnabled")
     public static WebView createWebView(Activity activity) {
-        final WebView webView = new WebView(activity);
+        WebView webView = new WebView(activity);
 
         // TODO: Only enable this in a DEBUG build of the library.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
@@ -39,39 +43,23 @@ public class WebViewUtilities {
         webView.getSettings().setSaveFormData(false);
         webView.getSettings().setSupportZoom(false);
 
-        final Handler myHandler = new Handler(Looper.getMainLooper()) {
+        webView.setWebViewClient(new WebViewClient() {
             @Override
-            public void handleMessage(Message inputMessage) {
-                String code = (String)inputMessage.obj;
-                webView.evaluateJavascript(code, null);
-            }
-        };
-
-        webView.addJavascriptInterface(new Object() {
-            @JavascriptInterface
-            public void dispatch(String json) {
-                try {
-                    JSONObject action = new JSONObject(json);
-                    String actionType = action.getString("type");
-                    Log.d("ZAPIC-WebView", "Received action of type \"" + actionType + "\"");
-                    switch (actionType) {
-                        case "LOGIN":
-                            Message message1 = myHandler.obtainMessage(1, "window.zapic.dispatch({ type: 'LOGIN_WITH_PLAY_GAME_SERVICES', payload: { serverAuthCode: 'my-server-auth-code' } })");
-                            message1.sendToTarget();
-                            break;
-                        case "APP_STARTED":
-                            Message message2 = myHandler.obtainMessage(1, "window.zapic.dispatch({ type: 'OPEN_PAGE', payload: 'default' })");
-                            message2.sendToTarget();
-                            break;
-                        default:
-                            break;
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                if (Uri.parse(url).getScheme().equals("market")) {
+                    try {
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setData(Uri.parse(url));
+                        Activity host = (Activity) view.getContext();
+                        host.startActivity(intent);
+                        return true;
+                    } catch (ActivityNotFoundException e) {
+                        return false;
                     }
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    return;
                 }
+                return false;
             }
-        }, "androidWebView");
+        });
 
         return webView;
     }
