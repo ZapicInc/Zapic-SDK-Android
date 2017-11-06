@@ -56,8 +56,8 @@ public class ZapicFragment extends Fragment {
             WebView.setWebContentsDebuggingEnabled(true);
         }
 
-        // String url = "https://client.zapic.net";
-        String url = "http://192.168.110.80:3000/";
+        String url = "https://client.zapic.net";
+        //String url = "http://192.168.110.80:3000/";
         myWebView.getSettings().setDomStorageEnabled(true);
         myWebView.getSettings().setSupportZoom(false);
         myWebView.getSettings().setBuiltInZoomControls(false);
@@ -106,11 +106,11 @@ public class ZapicFragment extends Fragment {
 
         //https://developer.android.com/reference/java/net/HttpURLConnection.html
         URL urlOne = null;
-        HttpURLConnection urlConnection = null;
+        HttpsURLConnection urlConnection = null;
         String html = "";
         try {
             urlOne = new URL(url);
-            urlConnection = (HttpURLConnection)urlOne.openConnection();
+            urlConnection = (HttpsURLConnection)urlOne.openConnection();
             InputStream in = new BufferedInputStream(urlConnection.getInputStream());
             if (!urlOne.getHost().equals(urlConnection.getURL().getHost())) {
                 // We were hijacked by a captive sign-in portal! Show a connection error with a retry button...

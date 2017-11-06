@@ -17,6 +17,11 @@ public class LogoutFragment extends Fragment {
     public LogoutFragment() {
     }
 
+    public static String Yellow()
+    {
+
+        return "Yellow";
+    }
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
@@ -36,10 +41,11 @@ public class LogoutFragment extends Fragment {
         logoutButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                switch (v.getId()) {
-                    case R.id.button_logout:
-                        if (mListener != null)
-                            mListener.onLogout();
+                int id = v.getId();
+                if (id == R.id.button_login) {
+                    if (mListener != null)
+                        mListener.onLogout();
+
                 }
             }
         });
@@ -48,13 +54,12 @@ public class LogoutFragment extends Fragment {
         zapicButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                switch (v.getId()) {
-                    case R.id.button_open:
-                        if (zapicListner != null)
-                            zapicListner.loadZapicWebView();
+                int id = v.getId();
+                if (id == R.id.button_open) {
+                    if (mListener != null)
+                        mListener.loadZapicWebView();
 
                 }
-
             }
         });
 

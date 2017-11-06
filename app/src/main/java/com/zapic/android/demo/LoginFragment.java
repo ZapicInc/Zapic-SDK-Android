@@ -32,11 +32,12 @@ public class LoginFragment extends Fragment {
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                switch (v.getId()) {
-                    case R.id.button_login:
+                    int id = v.getId();
+                    if (id == R.id.button_login){
                         if (mListener != null)
                             mListener.onLogin();
-                }
+                    }
+
             }
         });
 

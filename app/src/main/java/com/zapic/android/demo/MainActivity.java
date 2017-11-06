@@ -47,13 +47,16 @@ public class MainActivity extends FragmentActivity implements
         }
     }
 
-    private void login() {
+    public void login() {
         connect();
+        String s = "False";
 
         if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
             Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
             startActivityForResult(signInIntent, RC_SIGN_IN);
+            s= "True";
         }
+
     }
 
     private void logout() {

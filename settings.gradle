@@ -1,1 +1,1 @@
-include ':app', ':BaseGameUtils', ':com.zapic.client'
+include ':app'
