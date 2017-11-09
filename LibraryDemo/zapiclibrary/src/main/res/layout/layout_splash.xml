@@ -13,4 +13,13 @@
         android:layout_height="64sp"
         android:src="@drawable/logo"
         android:layout_gravity="center"/>
+
+    <ImageButton
+        android:id="@+id/button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_keyboard_backspace_black_24dp"
+        android:background="@null"/>
+
+
 </FrameLayout>

@@ -1,11 +1,20 @@
 package com.zapic.android.zapiclibrary;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.webkit.WebView;
+import android.widget.Button;
+import android.widget.ImageButton;
 
 import java.lang.ref.WeakReference;
 
@@ -20,6 +29,7 @@ public class ZapicActivity extends Activity {
         loadSplash();
     }
 
+
     public void closePage()
     {
         this.getActionBar().hide();
@@ -27,10 +37,20 @@ public class ZapicActivity extends Activity {
         finish();
     }
 
+
     public void loadSplash()
     {
         this.getActionBar().hide();
         setContentView(R.layout.layout_splash);
+
+        final ImageButton button = (ImageButton) findViewById(R.id.button);
+        button.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                // Code here executes on main thread after user presses button
+                finish();
+            }
+        });
+
     }
 
     public void loadPage()
