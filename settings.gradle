@@ -1,0 +1,2 @@
+include ':zapiclibrary'
+project(':zapiclibrary').projectDir = new File('LibraryDemo/zapiclibrary')

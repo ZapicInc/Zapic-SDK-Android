@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.ViewGroup;
 import android.webkit.WebView;
 
 import java.lang.ref.WeakReference;
@@ -21,18 +22,24 @@ public class ZapicActivity extends Activity {
 
     public void closePage()
     {
+        this.getActionBar().hide();
         setContentView(R.layout.layout_splash);
         finish();
     }
 
     public void loadSplash()
     {
+        this.getActionBar().hide();
         setContentView(R.layout.layout_splash);
     }
 
     public void loadPage()
     {
         WebView webView = ZapicFragment.webView;
+
+        if(webView.getParent() != null) {
+            ((ViewGroup)webView.getParent()).removeView(webView);
+        }
         if (webView != null) {
             setContentView(webView);
         }
