@@ -1,19 +1,12 @@
 package com.zapic.android.zapiclibrary;
 
-import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Intent;
-import android.graphics.Color;
-import android.graphics.PorterDuff;
-import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.webkit.WebView;
-import android.widget.Button;
 import android.widget.ImageButton;
 
 import java.lang.ref.WeakReference;
@@ -28,7 +21,6 @@ public class ZapicActivity extends Activity {
         Log.d("ZAPIC", "Started Zapic activity!!!");
         loadSplash();
     }
-
 
     public void closePage()
     {

@@ -1,5 +1,6 @@
 package com.zapic.android.zapiclibrary;
 
+import android.os.Debug;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -17,6 +18,7 @@ public class WebViewBridge implements Handler.Callback {
 
     private final Handler handler;
     private final WebView webView;
+    private boolean pageReady = false;
 
     public WebViewBridge(WebView webView) {
         this.handler = new Handler(Looper.getMainLooper(), this);
@@ -38,6 +40,7 @@ public class WebViewBridge implements Handler.Callback {
                     break;
                 case "PAGE_READY":
                     this.showWebView();
+                    pageReady = true;
                     break;
                 case "CLOSE_PAGE_REQUESTED":
                     this.closeWebView();
@@ -61,6 +64,20 @@ public class WebViewBridge implements Handler.Callback {
     }
 
     public void dispatchMessage(String json) {
+        Log.v(TAG, "dispatch Messages : " + json + "");
+        String code = "window.zapic.dispatch(" + json + ")";
+        Message message = this.handler.obtainMessage(1, code);
+        message.sendToTarget();
+    }
+
+    public void dispatchMessages(String[] strArray) {
+        //Assemble a larger string.A single message :  Different messages with ";" in between.
+        String json = null;
+        for(int i = 0 ; i< strArray.length; i++)
+        {
+            json += strArray + ";";
+
+        }
         String code = "window.zapic.dispatch(" + json + ")";
         Message message = this.handler.obtainMessage(1, code);
         message.sendToTarget();
@@ -94,5 +111,9 @@ public class WebViewBridge implements Handler.Callback {
             default:
                 return true;
         }
+    }
+    public boolean getPageReady()
+    {
+        return  pageReady;
     }
 }

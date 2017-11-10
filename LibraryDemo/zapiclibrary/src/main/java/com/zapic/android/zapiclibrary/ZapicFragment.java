@@ -7,13 +7,13 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.webkit.WebView;
-import android.widget.EditText;
 
 import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayDeque;
 
 import static android.provider.AlarmClock.EXTRA_MESSAGE;
 
@@ -22,11 +22,15 @@ public class ZapicFragment extends Fragment {
     private static final String URL = "https://client.zapic.net";
     private static final String TAG = "ZAPIC";
     private static final String FRAGMENT_TAG = "com.zapic.androidSdk.ZapicFragment";
+    private static ArrayDeque<String> storedOfflineEvents = new ArrayDeque<>();
 
     public static WeakReference<ZapicActivity> activityInstanceReference = null;
     public static WeakReference<ZapicFragment> instanceReference = null;
     public static WebViewBridge webViewBridge = null;
     public static WebView webView = null;
+
+
+
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
@@ -94,11 +98,30 @@ public class ZapicFragment extends Fragment {
     }
 
     public static void submitEventZapicFragment(String param) {
-        Log.v(TAG, "ZapicFragment.submitEventZapicFragment()");
+        Log.v("Zapic", "ZapicFragment.submitEventZapicFragment()");
 
         ZapicFragment instance = instanceReference.get();
-        if (instance != null) {
-            webViewBridge.dispatchMessage("{ type: 'SUBMIT_EVENT', payload: JSON.parse('" + param + "') }");
+        if (instance != null && webViewBridge.getPageReady()) {
+            if(!storedOfflineEvents.isEmpty())
+            {
+                Log.v("Zapic", "Empty Queue.");
+                String[] arr =  new String[storedOfflineEvents.size()];
+                for(int i = 0; i < storedOfflineEvents.size() ; i++)
+                {
+                    arr[i] = storedOfflineEvents.getFirst();
+                    storedOfflineEvents.removeFirst();
+                }//(String[]) storedOfflineEvents.toArray();
+                webViewBridge.dispatchMessages(arr);
+            }
+
+           webViewBridge.dispatchMessage("{ type: 'SUBMIT_EVENT', payload: JSON.parse('" + param + "') }");
+            Log.v("Zapic", "Passed Message.");
+        }else if(!webViewBridge.getPageReady())
+        {
+            Log.v("Zapic", "Passed Saved in Queue.");
+            storedOfflineEvents.add(param);
+
         }
     }
+
 }

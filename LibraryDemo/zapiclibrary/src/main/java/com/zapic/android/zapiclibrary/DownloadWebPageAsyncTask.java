@@ -16,6 +16,7 @@ public class DownloadWebPageAsyncTask extends AsyncTask<URL, Void, String> {
 
     @Override
     protected String doInBackground(URL... url) {
+
         Log.v("ZAPIC", "DownloadWebPageAsyncTask.doInBackground()");
 
         Log.d("ZAPIC", "Downloading HTML...");
