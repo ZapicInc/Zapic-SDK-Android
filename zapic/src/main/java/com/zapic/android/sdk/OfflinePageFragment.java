@@ -8,7 +8,7 @@ import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
+import android.widget.ImageButton;
 
 /**
  * A {@link Fragment} that renders an offline page.
@@ -65,7 +65,7 @@ public final class OfflinePageFragment extends Fragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        Button closeButton = view.findViewById(R.id.fragment_page_offline_close);
+        ImageButton closeButton = view.findViewById(R.id.fragment_page_offline_close);
         closeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

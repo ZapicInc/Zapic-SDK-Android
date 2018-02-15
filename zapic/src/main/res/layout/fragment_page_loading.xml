@@ -4,13 +4,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.zapic.android.sdk.LoadingPageFragment">
-    <Button
+    <ImageButton
         android:id="@+id/fragment_page_loading_close"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
-        android:text="@string/fragment_page_loading_close" />
+        android:layout_marginStart="@dimen/margin"
+        android:layout_marginTop="@dimen/margin"
+        android:background="?android:selectableItemBackground"
+        android:contentDescription="@string/fragment_page_loading_close"
+        android:src="@drawable/chevron_double_left" />
     <RelativeLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
