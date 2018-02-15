@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fragment_page_loading_close">Close</string>
+    <string name="fragment_page_loading_logo">Zapic</string>
+    <string name="fragment_page_offline_close">Close</string>
+    <string name="fragment_page_offline_logo">Zapic</string>
+    <string name="fragment_page_offline_message">Zapic could not be loaded. Please check your network connection and try again.</string>
+    <string name="fragment_page_offline_retry">Retry</string>
+</resources>

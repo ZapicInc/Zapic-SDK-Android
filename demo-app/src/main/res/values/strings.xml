@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Zapic Android Demo</string>
+    <string name="challenges_button">Challenges</string>
+    <string name="zapic_button">Zapic</string>
+</resources>
