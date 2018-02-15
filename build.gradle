@@ -1,0 +1,42 @@
+buildscript {
+    repositories {
+        google()
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.0.1'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+    }
+}
+
+allprojects {
+    gradle.projectsEvaluated {
+        tasks.withType(JavaCompile) {
+            options.compilerArgs << '-Xlint:unchecked' << '-Xlint:deprecation'
+        }
+    }
+}
+
+ext {
+    compileSdkVersion = 27
+    buildToolsVersion = '27.0.3'
+
+    minSdkVersion = 19
+    targetSdkVersion = 27
+
+    sourceCompatibility = JavaVersion.VERSION_1_7
+    targetCompatibility = JavaVersion.VERSION_1_7
+
+    playServicesVersion = '11.8.0'
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
