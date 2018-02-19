@@ -32,7 +32,7 @@ final class AppSourceAsyncTask extends AsyncTask<Void, Integer, AppSource> imple
      * The web client application manager.
      */
     @NonNull
-    private final WeakReference<AppManager> mAppManager;
+    private final WeakReference<App> mApp;
 
     /**
      * The web client application URL.
@@ -49,12 +49,12 @@ final class AppSourceAsyncTask extends AsyncTask<Void, Integer, AppSource> imple
     /**
      * Creates a new instance.
      *
-     * @param appManager                The web client application manager.
+     * @param app                       The Zapic JavaScript application.
      * @param url                       The web client application URL.
      * @param cacheDir                  The Android application's cache directory.
      * @throws IllegalArgumentException If {@code url} is invalid.
      */
-    AppSourceAsyncTask(@NonNull final AppManager appManager, @NonNull final String url, @NonNull final File cacheDir) {
+    AppSourceAsyncTask(@NonNull final App app, @NonNull final String url, @NonNull final File cacheDir) {
         URL parsedUrl;
         try {
             parsedUrl = new URL(url);
@@ -62,7 +62,7 @@ final class AppSourceAsyncTask extends AsyncTask<Void, Integer, AppSource> imple
             throw new IllegalArgumentException("The web client application URL is invalid");
         }
 
-        this.mAppManager = new WeakReference<>(appManager);
+        this.mApp = new WeakReference<>(app);
         this.mAppUrl = parsedUrl;
         this.mCacheDir = cacheDir;
     }
@@ -282,9 +282,9 @@ final class AppSourceAsyncTask extends AsyncTask<Void, Integer, AppSource> imple
             return;
         }
 
-        AppManager appManager = this.mAppManager.get();
-        if (appManager != null) {
-            appManager.loadWebView(appSource);
+        App app = this.mApp.get();
+        if (app != null) {
+            app.loadWebView(appSource);
         }
     }
 

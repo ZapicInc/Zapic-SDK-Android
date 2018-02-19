@@ -2,9 +2,12 @@ package com.zapic.android.sdk;
 
 import android.app.Fragment;
 import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.MainThread;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.transition.Slide;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -57,6 +60,17 @@ public final class LoadingPageFragment extends Fragment {
     }
 
     @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        if (BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            final Slide slide = new Slide();
+            slide.setDuration(500);
+            this.setEnterTransition(slide);
+        }
+    }
+
+    @Override
     public View onCreateView(@NonNull final LayoutInflater inflater, final ViewGroup container, final Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_page_loading, container, false);
     }
@@ -71,7 +85,7 @@ public final class LoadingPageFragment extends Fragment {
             public void onClick(View v) {
                 InteractionListener listener = LoadingPageFragment.this.mListener;
                 if (listener != null) {
-                    listener.onClose();
+                    listener.close();
                 }
             }
         });
@@ -86,12 +100,13 @@ public final class LoadingPageFragment extends Fragment {
 
     /**
      * Activities that include {@link LoadingPageFragment} must implement this interface to handle
-     * events.
+     * interaction events.
      */
     public interface InteractionListener {
         /**
-         * Called when the user requests that the page be closed.
+         * Closes the page.
          */
-        void onClose();
+        @MainThread
+        void close();
     }
 }
