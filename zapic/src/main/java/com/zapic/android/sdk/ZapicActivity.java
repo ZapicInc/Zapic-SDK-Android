@@ -50,17 +50,16 @@ public final class ZapicActivity extends Activity implements
     private static final String TAG = "ZapicActivity";
 
     /**
-     * The Zapic JavaScript application.
+     * The {@link WebView}.
      */
     @Nullable
-    private App mApp;
+    private WebView mWebView;
 
     /**
-     * Creates a new {@link ZapicActivity} instance.
+     * Creates a new {@link ZapicActivity} instance
      */
-    @MainThread
     public ZapicActivity() {
-        this.mApp = null;
+        this.mWebView = null;
     }
 
     /**
@@ -68,7 +67,7 @@ public final class ZapicActivity extends Activity implements
      * JavaScript application page.
      *
      * @param gameActivity The game's activity.
-     * @return             The {@link Intent}.
+     * @return The {@link Intent}.
      */
     @MainThread
     @CheckResult
@@ -83,7 +82,7 @@ public final class ZapicActivity extends Activity implements
      *
      * @param gameActivity The game's activity.
      * @param page         The Zapic JavaScript application page to open.
-     * @return             The {@link Intent}.
+     * @return The {@link Intent}.
      */
     @MainThread
     @CheckResult
@@ -118,13 +117,15 @@ public final class ZapicActivity extends Activity implements
 //    }
 
     /**
-     * Gets the Zapic JavaScript application.
+     * Gets the {@link WebView}.
+     *
+     * @return The {@link WebView}.
      */
     @CheckResult
     @MainThread
     @Nullable
-    App getApp() {
-        return this.mApp;
+    WebView getWebView() {
+        return this.mWebView;
     }
 
     @MainThread
@@ -141,8 +142,6 @@ public final class ZapicActivity extends Activity implements
 //        this.enableImmersiveFullScreenMode();
 
         this.setContentView(R.layout.activity_zapic);
-        this.openLoadingPage();
-
         if (BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             final Slide slide = new Slide();
             slide.setDuration(500);
@@ -151,6 +150,36 @@ public final class ZapicActivity extends Activity implements
 
         // Attach Zapic.
         Zapic.attachFragment(this);
+        this.getFragmentManager().executePendingTransactions();
+
+        ZapicFragment fragment = Zapic.getFragment(this);
+        assert fragment != null : "fragment == null";
+        App app = fragment.getApp();
+        assert app != null : "app == null";
+        this.mWebView = app.getWebView();
+        assert this.mWebView != null : "mWebView == null";
+
+        switch (app.getState()) {
+            case READY:
+                this.openAppPage();
+                break;
+            case STARTED:
+                this.openLoadingPage();
+                String page = this.getIntent().getStringExtra("page");
+                if (page == null) {
+                    page = "default";
+                }
+
+                final String escapedPage = page.replace("'", "\\'");
+                this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'OPEN_PAGE', payload: '" + escapedPage + "' })", null);
+                break;
+            default:
+                if (app.getConnected()) {
+                    this.openLoadingPage();
+                } else {
+                    this.openOfflinePage();
+                }
+        }
     }
 
     @MainThread
@@ -161,11 +190,7 @@ public final class ZapicActivity extends Activity implements
         }
 
         super.onNewIntent(intent);
-
         this.setIntent(intent);
-        if (this.mApp != null) {
-            // TODO: Navigate to the requested page.
-        }
     }
 
 // TODO: Determine if the following is required when we use a fullscreen theme.
@@ -224,16 +249,6 @@ public final class ZapicActivity extends Activity implements
         } else if (!(currentFragment instanceof OfflinePageFragment)) {
             fragmentManager.beginTransaction().replace(R.id.activity_zapic_container, OfflinePageFragment.createInstance()).commit();
         }
-    }
-
-    /**
-     * Sets the Zapic JavaScript application.
-     *
-     * @param app The Zapic JavaScript application.
-     */
-    @MainThread
-    void setApp(@Nullable final App app) {
-        this.mApp = app;
     }
 
     //region Lifecycle Events

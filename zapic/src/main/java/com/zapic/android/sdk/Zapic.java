@@ -63,7 +63,7 @@ public final class Zapic {
      * <p>
      * This must be called from the Android application's main thread.
      *
-     * @param  gameActivity             The game's activity.
+     * @param gameActivity The game's activity.
      * @throws IllegalArgumentException If {@code gameActivity} is {@code null}.
      */
     @MainThread
@@ -86,7 +86,7 @@ public final class Zapic {
      * This must be called from the Android application's main thread. Generally, this should not be
      * called. The fragment is automatically destroyed when the game's activity finishes.
      *
-     * @param  gameActivity             The game's activity.
+     * @param gameActivity The game's activity.
      * @throws IllegalArgumentException If {@code gameActivity} is {@code null}.
      */
     @MainThread
@@ -107,15 +107,15 @@ public final class Zapic {
      * Gets a {@link ZapicFragment} from the specified game's activity.
      *
      * @param gameActivity The game's activity.
-     * @return             The {@link ZapicFragment} or {@code null} if one has not been attached.
+     * @return The {@link ZapicFragment} or {@code null} if one has not been attached.
      */
     @CheckResult
     @MainThread
     @Nullable
-    private static ZapicFragment getFragment(@NonNull final Activity gameActivity) {
+    static ZapicFragment getFragment(@NonNull final Activity gameActivity) {
         final FragmentManager manager = gameActivity.getFragmentManager();
         final Fragment fragment = manager.findFragmentByTag(Zapic.FRAGMENT_TAG);
-        return fragment instanceof ZapicFragment ? (ZapicFragment)fragment : null;
+        return fragment instanceof ZapicFragment ? (ZapicFragment) fragment : null;
     }
 
     /**
@@ -151,7 +151,7 @@ public final class Zapic {
      * (requirements are outlined in the <a href="https://www.zapic.com/terms/">Terms of Use</a>).
      * This <i>may</i> be called from other game elements or user interactions.
      *
-     * @param gameActivity              The game's activity.
+     * @param gameActivity The game's activity.
      * @throws IllegalArgumentException If {@code gameActivity} is {@code null}.
      */
     @MainThread
@@ -175,8 +175,8 @@ public final class Zapic {
      * menu (see {@link #show(Activity)}. This <i>may</i> be called from other game elements or
      * user interactions to navigate players to specific pages.
      *
-     * @param gameActivity              The game's activity.
-     * @param page                      The Zapic JavaScript application page to open.
+     * @param gameActivity The game's activity.
+     * @param page         The Zapic JavaScript application page to open.
      * @throws IllegalArgumentException If {@code gameActivity} or {@code page} are {@code null}.
      */
     @MainThread
@@ -197,8 +197,8 @@ public final class Zapic {
     /**
      * Submits a gameplay event to Zapic.
      *
-     * @param gameActivity              The game's activity.
-     * @param parameters                The JSON-encoded object of gameplay event parameters.
+     * @param gameActivity The game's activity.
+     * @param parameters   The JSON-encoded object of gameplay event parameters.
      * @throws IllegalArgumentException If {@code gameActivity} or {@code parameters} are
      *                                  {@code null}; if {@code gameActivity} does not have a
      *                                  {@link ZapicFragment} attached (see

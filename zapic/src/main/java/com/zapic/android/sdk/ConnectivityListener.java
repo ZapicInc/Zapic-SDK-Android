@@ -4,6 +4,9 @@ import android.support.annotation.MainThread;
 
 /**
  * Represents a network connectivity listener.
+ *
+ * @author Kyle Dodson
+ * @since 1.0.0
  */
 interface ConnectivityListener {
     /**

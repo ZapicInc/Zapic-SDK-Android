@@ -7,6 +7,10 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
+import android.support.annotation.CheckResult;
 import android.support.annotation.MainThread;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -28,6 +32,28 @@ import org.json.JSONObject;
 import java.io.File;
 
 final class App implements ConnectivityListener {
+    interface InteractionListener {
+        @MainThread
+        void login();
+
+        @MainThread
+        void logout();
+
+        @MainThread
+        void onStateChanged(final State state);
+
+        @MainThread
+        void toast(@NonNull final String message);
+    }
+
+    enum State {
+        LOADED,
+        STARTED,
+        READY,
+        NOT_LOADED,
+        NOT_READY,
+    }
+
     /**
      * A communication bridge that dispatches messages from the Zapic JavaScript application.
      *
@@ -35,6 +61,102 @@ final class App implements ConnectivityListener {
      * @since 1.0.0
      */
     final class AppJavascriptInterface {
+        /**
+         * Identifies an action that indicates the Zapic JavaScript application has loaded.
+         */
+        private static final int APP_LOADED = 1;
+
+        /**
+         * Identifies an action that indicates the Zapic JavaScript application has started.
+         */
+        private static final int APP_STARTED = 2;
+
+        /**
+         * Identifies an action that indicates the Zapic JavaScript application has requested
+         * closing the page.
+         */
+        private static final int CLOSE_PAGE_REQUESTED = 3;
+
+        /**
+         * Identifies an action that indicates the Zapic JavaScript application has requested
+         * logging in the player.
+         */
+        private static final int LOGIN = 4;
+
+        /**
+         * Identifies an action that indicates the Zapic JavaScript application has requested
+         * logging out the player.
+         */
+        private static final int LOGOUT = 5;
+
+        /**
+         * Identifies an action that indicates the Zapic JavaScript application has requested
+         * showing a banner to the player.
+         */
+        private static final int SHOW_BANNER = 6;
+
+        /**
+         * Identifies an action that indicates the Zapic JavaScript application is ready to show a
+         * page to the player.
+         */
+        private static final int SHOW_PAGE = 7;
+
+        /**
+         * The handler used to run tasks on the main thread.
+         */
+        @NonNull
+        private final Handler mHandler;
+
+        /**
+         * Creates a new {@link AppJavascriptInterface} instance.
+         */
+        private AppJavascriptInterface() {
+            this.mHandler = new Handler(Looper.getMainLooper(), new Handler.Callback() {
+                @Override
+                public boolean handleMessage(Message msg) {
+                    switch (msg.what) {
+                        case APP_LOADED: {
+                            App.this.mLoaded = true;
+                            App.this.mInteractionListener.onStateChanged(State.LOADED);
+                            break;
+                        }
+                        case APP_STARTED: {
+                            App.this.mStarted = true;
+                            App.this.mInteractionListener.onStateChanged(State.STARTED);
+                            break;
+                        }
+                        case CLOSE_PAGE_REQUESTED: {
+                            App.this.mReady = false;
+                            App.this.mInteractionListener.onStateChanged(State.NOT_READY);
+                            break;
+                        }
+                        case LOGIN: {
+                            App.this.mInteractionListener.login();
+                            break;
+                        }
+                        case LOGOUT: {
+                            App.this.mInteractionListener.logout();
+                            break;
+                        }
+                        case SHOW_BANNER: {
+                            App.this.mInteractionListener.toast((String)msg.obj);
+                            break;
+                        }
+                        case SHOW_PAGE: {
+                            App.this.mReady = true;
+                            App.this.mInteractionListener.onStateChanged(State.READY);
+                            break;
+                        }
+                        default: {
+                            break;
+                        }
+                    }
+
+                    return true;
+                }
+            });
+        }
+
         /**
          * Dispatches a message from the Zapic JavaScript application.
          * <p>
@@ -49,7 +171,10 @@ final class App implements ConnectivityListener {
             try {
                 action = new JSONObject(message);
             } catch (JSONException e) {
-                Log.e(App.TAG, "Failed to parse serialized action", e);
+                if (BuildConfig.DEBUG) {
+                    Log.e(App.TAG, "Failed to parse serialized action", e);
+                }
+
                 return;
             }
 
@@ -57,44 +182,24 @@ final class App implements ConnectivityListener {
             try {
                 type = action.getString("type");
             } catch (JSONException e) {
-                Log.e(App.TAG, "The action does not have a type", e);
+                if (BuildConfig.DEBUG) {
+                    Log.e(App.TAG, "The action does not have a type", e);
+                }
+
                 return;
             }
 
             switch (type) {
                 case "APP_LOADED": {
-                    App.this.mLoaded = true;
+                    this.mHandler.sendMessage(this.mHandler.obtainMessage(APP_LOADED));
                     break;
                 }
                 case "APP_STARTED": {
-                    App.this.mStarted = true;
-
-                    ZapicActivity activity = App.this.mActivity;
-                    if (activity != null) {
-                        activity.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                            App.this.open();
-                            }
-                        });
-                    }
-
+                    this.mHandler.sendMessage(this.mHandler.obtainMessage(APP_STARTED));
                     break;
                 }
                 case "CLOSE_PAGE_REQUESTED": {
-                    ZapicActivity activity = App.this.mActivity;
-                    if (activity != null) {
-                        activity.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                            ZapicActivity activity = App.this.mActivity;
-                            if (activity != null) {
-                                activity.finish();
-                            }
-                            }
-                        });
-                    }
-
+                    this.mHandler.sendMessage(this.mHandler.obtainMessage(CLOSE_PAGE_REQUESTED));
                     break;
                 }
                 case "LOGGED_IN": {
@@ -104,31 +209,27 @@ final class App implements ConnectivityListener {
                     } catch (JSONException ignored) {
                         Zapic.setPlayerId(null);
                     }
+
+                    break;
                 }
                 case "LOGIN": {
-                    Log.d(App.TAG, message);
+                    this.mHandler.sendMessage(this.mHandler.obtainMessage(LOGIN));
+                    break;
+                }
+                case "LOGOUT": {
+                    Zapic.setPlayerId(null);
+                    this.mHandler.sendMessage(this.mHandler.obtainMessage(LOGOUT));
                     break;
                 }
                 case "PAGE_READY": {
-                    ZapicActivity activity = App.this.mActivity;
-                    if (activity != null) {
-                        activity.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                ZapicActivity activity = App.this.mActivity;
-                                if (activity != null) {
-                                    activity.openAppPage();
-                                }
-                            }
-                        });
-                    }
+                    this.mHandler.sendMessage(this.mHandler.obtainMessage(SHOW_PAGE));
+                    break;
                 }
                 case "SHOW_BANNER": {
-                    Log.d(App.TAG, message);
+                    this.mHandler.sendMessage(this.mHandler.obtainMessage(SHOW_BANNER));
                     break;
                 }
                 default: {
-                    Log.e(App.TAG, String.format("The action type is invalid: %s", type));
                     break;
                 }
             }
@@ -161,18 +262,19 @@ final class App implements ConnectivityListener {
         @Override
         @RequiresApi(Build.VERSION_CODES.O)
         public boolean onRenderProcessGone(@NonNull final WebView view, @NonNull final RenderProcessGoneDetail detail) {
-            final boolean crashed = detail.didCrash();
-            if (crashed) {
-                Log.e(App.TAG, "The WebView has crashed");
-            } else {
-                Log.e(App.TAG, "The WebView has been stopped to reclaim memory");
+            if (BuildConfig.DEBUG) {
+                final boolean crashed = detail.didCrash();
+                if (crashed) {
+                    Log.e(App.TAG, "The WebView has crashed");
+                } else {
+                    Log.e(App.TAG, "The WebView has been stopped to reclaim memory");
+                }
             }
 
-            if (App.this.mActivity != null) {
-                App.this.mActivity.openLoadingPage();
-                App.this.mWebView = null;
-            }
-
+            App.this.mLoaded = false;
+            App.this.mReady = false;
+            App.this.mStarted = false;
+            App.this.mInteractionListener.onStateChanged(State.NOT_LOADED);
             return true;
         }
 
@@ -225,7 +327,37 @@ final class App implements ConnectivityListener {
                 return true;
             }
 
-            // TODO: Prevent navigation to external URLs.
+            final String host = url.getHost();
+            if (host != null && (host.equalsIgnoreCase("itunes.apple.com") || host.toLowerCase().endsWith(".itunes.apple.com"))) {
+                if (scheme != null && (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
+                    // Create a web browser app intent.
+                    final Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setData(url);
+
+                    // Open the web browser app.
+                    final Context context = view.getContext();
+                    context.startActivity(intent);
+                }
+
+                // Prevent the WebView from navigating to an external URL.
+                return true;
+            }
+
+            if (host != null && (host.equalsIgnoreCase("play.google.com") || host.toLowerCase().endsWith(".play.google.com"))) {
+                if (scheme != null && (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
+                    // Create a web browser app intent.
+                    final Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setData(url);
+
+                    // Open the web browser app.
+                    final Context context = view.getContext();
+                    context.startActivity(intent);
+                }
+
+                // Prevent the WebView from navigating to an external URL.
+                return true;
+            }
+
             return false;
         }
     }
@@ -249,15 +381,6 @@ final class App implements ConnectivityListener {
     private static final String VARIABLE_NAME = "androidWebView";
 
     /**
-     * The {@link ZapicActivity}.
-     * <p>
-     * This should be {@code null} when the game's activity is visible. This should be
-     * non-{@code null} when the {@link ZapicActivity} is visible.
-     */
-    @Nullable
-    private ZapicActivity mActivity;
-
-    /**
      * The currently executing asynchronous task.
      */
     @Nullable
@@ -275,9 +398,20 @@ final class App implements ConnectivityListener {
     private boolean mConnected;
 
     /**
+     * The interaction events listener.
+     */
+    @NonNull
+    private final InteractionListener mInteractionListener;
+
+    /**
      * A value that indicates whether the Zapic JavaScript application has been loaded.
      */
     private boolean mLoaded;
+
+    /**
+     * A value that indicates whether the Zapic JavaScript application page is ready.
+     */
+    private boolean mReady;
 
     /**
      * A value that indicates whether the Zapic JavaScript application has been started.
@@ -292,15 +426,49 @@ final class App implements ConnectivityListener {
 
     /**
      * Creates a new {@link App} instance
+     *
+     * @param interactionListener The interaction event listener.
      */
-    App() {
-        this.mActivity = null;
+    App(@NonNull final InteractionListener interactionListener) {
         this.mAsyncTask = null;
         this.mCacheDir = null;
         this.mConnected = false;
+        this.mInteractionListener = interactionListener;
         this.mLoaded = false;
+        this.mReady = false;
         this.mStarted = false;
         this.mWebView = null;
+    }
+
+    /**
+     * Gets a value that indicates whether the Android device has network connectivity.
+     *
+     * @return {@code true} if the Android device has network connectivity; {@code false} if the
+     * Android device does not have network connectivity.
+     */
+    @CheckResult
+    @MainThread
+    boolean getConnected() {
+        return this.mConnected;
+    }
+
+    /**
+     * Gets the current state.
+     *
+     * @return The current state.
+     */
+    @CheckResult
+    @MainThread
+    State getState() {
+        if (this.mReady) {
+            return State.READY;
+        } else if (this.mStarted) {
+            return State.STARTED;
+        } else if (this.mLoaded) {
+            return State.LOADED;
+        } else {
+            return State.NOT_LOADED;
+        }
     }
 
     /**
@@ -308,6 +476,8 @@ final class App implements ConnectivityListener {
      *
      * @return The {@link WebView}.
      */
+    @CheckResult
+    @MainThread
     @Nullable
     WebView getWebView() {
         return this.mWebView;
@@ -322,6 +492,11 @@ final class App implements ConnectivityListener {
         }
     }
 
+    @MainThread
+    void loadWebViewCancelled() {
+        this.mAsyncTask = null;
+    }
+
     @Override
     public void onConnected() {
         if (this.mConnected) {
@@ -329,8 +504,12 @@ final class App implements ConnectivityListener {
         }
 
         this.mConnected = true;
-
-        // TODO: Start async task if needed.
+        if (this.mAsyncTask == null && this.mCacheDir != null && this.getState() == State.NOT_LOADED) {
+            // Start an asynchronous task to get the web client application.
+            AppSourceAsyncTask asyncTask = new AppSourceAsyncTask(this, App.APP_URL, this.mCacheDir);
+            this.mAsyncTask = asyncTask;
+            asyncTask.execute();
+        }
     }
 
     @Override
@@ -340,35 +519,6 @@ final class App implements ConnectivityListener {
         }
 
         this.mConnected = false;
-    }
-
-    @MainThread
-    private void open() {
-        if (this.mActivity != null && this.mWebView != null) {
-            String page = this.mActivity.getIntent().getStringExtra("page");
-            if (page == null) {
-                page = "default";
-            }
-
-            final String escapedPage = page.replace("'", "\\'");
-            this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'OPEN_PAGE', payload: '" + escapedPage + "' })", null);
-        }
-    }
-
-    @MainThread
-    void setActivity(@Nullable final ZapicActivity activity) {
-        if (activity == null && this.mActivity != null) {
-            WebView webView = App.this.mWebView;
-            if (webView != null) {
-                webView.evaluateJavascript("window.zapic.dispatch({ type: 'CLOSE_PAGE' })", null);
-            }
-        }
-
-        this.mActivity = activity;
-
-        if (this.mStarted) {
-            this.open();
-        }
     }
 
     @MainThread
@@ -416,10 +566,10 @@ final class App implements ConnectivityListener {
             this.mAsyncTask = null;
         }
 
-        if (this.mActivity != null) {
-            this.mActivity.close();
-            this.mActivity = null;
-        }
+        this.mLoaded = false;
+        this.mReady = false;
+        this.mStarted = false;
+        this.mInteractionListener.onStateChanged(State.NOT_LOADED);
 
         if (this.mWebView != null) {
             final ViewParent parent = this.mWebView.getParent();

@@ -10,6 +10,9 @@ import android.support.annotation.NonNull;
 
 /**
  * A {@link ConnectivityManager} broadcast receiver that relays network connectivity changes.
+ *
+ * @author Kyle Dodson
+ * @since 1.0.0
  */
 final class ConnectivityBroadcastReceiver extends BroadcastReceiver {
     /**
@@ -36,7 +39,7 @@ final class ConnectivityBroadcastReceiver extends BroadcastReceiver {
      */
     @MainThread
     void notify(@NonNull final Context context) {
-        final ConnectivityManager connectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        final ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         if (connectivityManager == null) {
             return;
         }

@@ -10,6 +10,9 @@ import android.support.annotation.NonNull;
 
 /**
  * Provides {@link ConnectivityManager} utility methods.
+ *
+ * @author Kyle Dodson
+ * @since 1.0.0
  */
 final class ConnectivityManagerUtilities {
     /**
@@ -26,8 +29,8 @@ final class ConnectivityManagerUtilities {
      * indicate whether data saver has been enabled.
      *
      * @param connectivityManager The Android device's connectivity manager.
-     * @return                    {@code true} if the Android device is connected to a network;
-     *                            {@code false} if the Android device is not connected to a network.
+     * @return {@code true} if the Android device is connected to a network; {@code false} if the
+     * Android device is not connected to a network.
      */
     @AnyThread
     @CheckResult
@@ -42,7 +45,7 @@ final class ConnectivityManagerUtilities {
      *
      * @param activity The activity.
      * @param listener The network connectivity listener.
-     * @return         The {@link ConnectivityBroadcastReceiver}.
+     * @return The {@link ConnectivityBroadcastReceiver}.
      * @see #unregisterConnectivityBroadcastReceiver
      */
     @AnyThread

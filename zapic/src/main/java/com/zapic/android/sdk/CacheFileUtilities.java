@@ -40,7 +40,7 @@ final class CacheFileUtilities {
      *
      * @param file              The file to delete.
      * @param cancellationToken The cancellation token.
-     * @throws IOException      If repeated errors occur deleting the file.
+     * @throws IOException If repeated errors occur deleting the file.
      */
     @WorkerThread
     static void deleteFile(@NonNull final File file, @NonNull final CancellationToken cancellationToken) throws IOException {
@@ -73,9 +73,9 @@ final class CacheFileUtilities {
      *
      * @param file              The file to read.
      * @param cancellationToken The cancellation token.
-     * @return                  The contents of the file or {@code null} if the task was cancelled
-     *                          or if the file does not exist.
-     * @throws IOException      If repeated errors occur reading the file.
+     * @return The contents of the file or {@code null} if the task was cancelled or if the file
+     * does not exist.
+     * @throws IOException If repeated errors occur reading the file.
      */
     @Nullable
     @WorkerThread
@@ -133,8 +133,8 @@ final class CacheFileUtilities {
      * @param file              The file to write.
      * @param content           The contents of the file.
      * @param cancellationToken The cancellation token.
-     * @throws IOException      If the file cannot be created or if repeated errors occur writing
-     *                          the file.
+     * @throws IOException If the file cannot be created or if repeated errors occur writing the
+     * file.
      */
     @WorkerThread
     static void writeFile(@NonNull final File file, @NonNull final String content, @NonNull final CancellationToken cancellationToken) throws IOException {

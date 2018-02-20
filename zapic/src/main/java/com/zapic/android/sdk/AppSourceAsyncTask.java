@@ -49,9 +49,9 @@ final class AppSourceAsyncTask extends AsyncTask<Void, Integer, AppSource> imple
     /**
      * Creates a new instance.
      *
-     * @param app                       The Zapic JavaScript application.
-     * @param url                       The web client application URL.
-     * @param cacheDir                  The Android application's cache directory.
+     * @param app      The Zapic JavaScript application.
+     * @param url      The web client application URL.
+     * @param cacheDir The Android application's cache directory.
      * @throws IllegalArgumentException If {@code url} is invalid.
      */
     AppSourceAsyncTask(@NonNull final App app, @NonNull final String url, @NonNull final File cacheDir) {
@@ -69,6 +69,7 @@ final class AppSourceAsyncTask extends AsyncTask<Void, Integer, AppSource> imple
 
     @Nullable
     @Override
+    @WorkerThread
     protected AppSource doInBackground(final Void... voids) {
         final AppSource cachedAppSource = this.getFromCache();
         if (cachedAppSource != null) {
@@ -96,7 +97,7 @@ final class AppSourceAsyncTask extends AsyncTask<Void, Integer, AppSource> imple
      * Downloads the web client application.
      *
      * @return The web client application source and version or {@code null} if the task was
-     *         cancelled.
+     * cancelled.
      */
     @Nullable
     @WorkerThread
@@ -109,7 +110,7 @@ final class AppSourceAsyncTask extends AsyncTask<Void, Integer, AppSource> imple
             try {
                 // Connect to web server.
                 Log.d(TAG, String.format("Downloading web client application from %s", this.mAppUrl));
-                connection = (HttpURLConnection)this.mAppUrl.openConnection();
+                connection = (HttpURLConnection) this.mAppUrl.openConnection();
                 connection.setAllowUserInteraction(false);
                 connection.setConnectTimeout(30000);
                 connection.setInstanceFollowRedirects(false);
@@ -196,7 +197,7 @@ final class AppSourceAsyncTask extends AsyncTask<Void, Integer, AppSource> imple
      * Gets the web client application source and version from the cache.
      *
      * @return The web client application source and version or {@code null} if the task was
-     *         cancelled or if the web client application source and version has not been cached.
+     * cancelled or if the web client application source and version has not been cached.
      */
     @Nullable
     @WorkerThread
@@ -241,7 +242,7 @@ final class AppSourceAsyncTask extends AsyncTask<Void, Integer, AppSource> imple
      * Injects the initialization script into the web client application HTML.
      *
      * @param appSource The <i>original</i> web client application source and version.
-     * @return          The modified web client application source and version.
+     * @return The modified web client application source and version.
      */
     @NonNull
     @WorkerThread
@@ -257,7 +258,7 @@ final class AppSourceAsyncTask extends AsyncTask<Void, Integer, AppSource> imple
                 "window.zapic = {" +
                 "  environment: 'webview'," +
                 "  version: 1," +
-                "  androidVersion: " + String.valueOf(Build.VERSION.SDK_INT) + "," +
+                "  androidVersion: '" + String.valueOf(Build.VERSION.SDK_INT) + "'," +
                 "  onLoaded: (action$, publishAction) => {" +
                 "    window.zapic.dispatch = (action) => {" +
                 "      publishAction(action)" +
@@ -278,20 +279,31 @@ final class AppSourceAsyncTask extends AsyncTask<Void, Integer, AppSource> imple
     @MainThread
     @Override
     protected void onPostExecute(@Nullable AppSource appSource) {
-        if (appSource == null) {
+        final App app = this.mApp.get();
+        if (app == null) {
             return;
         }
 
-        App app = this.mApp.get();
-        if (app != null) {
+        if (appSource == null) {
+            app.loadWebViewCancelled();
+        } else {
             app.loadWebView(appSource);
+        }
+    }
+
+    @MainThread
+    @Override
+    protected void onProgressUpdate(final Integer... values) {
+        final App app = this.mApp.get();
+        if (app == null || !app.getConnected()) {
+            this.cancel(true);
         }
     }
 
     /**
      * Puts the web client application source and version in the cache.
      *
-     * @param appSource         The web client application source and version.
+     * @param appSource The web client application source and version.
      */
     @WorkerThread
     private void putInCache(@NonNull final AppSource appSource) {

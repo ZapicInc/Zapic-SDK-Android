@@ -2,4 +2,7 @@
     <string name="app_name">Zapic Android Demo</string>
     <string name="challenges_button">Challenges</string>
     <string name="zapic_button">Zapic</string>
+
+    <string name="play_games_app_id">853726039702</string>
+    <string name="play_games_web_client_id">853726039702-d1er1k1d6bvjg6lf9fg5rnja64scrk9s.apps.googleusercontent.com</string>
 </resources>
