@@ -64,7 +64,7 @@ final class AppSource {
      * Gets the Last-Modified date and time in milliseconds since January 1, 1970.
      *
      * @return The Last-Modified date and time in milliseconds since January 1, 1970 or {@code 0}
-     *         if one was not returned in the HTTP response.
+     * if one was not returned in the HTTP response.
      */
     long getLastModified() {
         return this.lastModified;

@@ -19,7 +19,8 @@
             </intent-filter>
         </activity>
 
-        <meta-data android:name="com.google.android.gms.games.APP_ID" android:value="853726039702" />
+        <meta-data android:name="com.google.android.gms.games.APP_ID" android:value="@string/play_games_app_id" />
+        <meta-data android:name="com.google.android.gms.games.WEB_CLIENT_ID" android:value="@string/play_games_web_client_id" />
     </application>
 
 </manifest>

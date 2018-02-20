@@ -4,45 +4,41 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.CheckResult;
 import android.support.annotation.MainThread;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.transition.Slide;
 import android.util.Log;
-import android.view.View;
 import android.webkit.WebView;
 
 /**
- * An {@link Activity} that presents the Zapic application.
+ * An {@link Activity} that presents the Zapic JavaScript application in the foreground.
  * <p>
- * Use the {@link ZapicActivity#createIntent} factory method to create an intent that starts this
- * activity and opens a specific Zapic application page.
+ * Use {@link Zapic#show(Activity)} or {@link Zapic#show(Activity, String)} to start instances of
+ * this activity. Alternatively, use the {@link #createIntent(Activity)} or
+ * {@link #createIntent(Activity, String)} factory methods to create an intent that starts instances
+ * of this activity.
  * <p>
- * The Zapic application runs in a {@link WebView}. Generally, the {@link WebView} runs for the
- * lifetime of the Android application. While the game is in focus, the {@link WebView} runs in
- * the background (managed by a {@link ZapicFragment} attached to the game's activity) and the Zapic
- * application processes events and receives notifications. When the player shifts focus to the
- * Zapic application, the {@link WebView} moves to the foreground and is presented by a
- * {@link ZapicActivity}. When the player shifts focus back to the game, the {@link ZapicActivity}
- * finishes and the {@link WebView} again runs in the background (again managed by a
- * {@link ZapicFragment} attached to the game's activity).
+ * The Zapic JavaScript application runs in a {@link WebView}. Generally, the {@link WebView} runs
+ * for the lifetime of the Android application. While the game is in focus, the {@link WebView} runs
+ * in the background (managed by one or more {@link ZapicFragment}s attached to the game's
+ * activities). The Zapic JavaScript application processes events and receives notifications while
+ * running in the background. When the player shifts focus to Zapic, the {@link WebView} moves to
+ * the foreground and is presented by a {@link ZapicActivity}. When the player shifts focus back to
+ * the game, the {@link ZapicActivity} finishes and the {@link WebView} returns to the background
+ * (again managed by one or more {@link ZapicFragment}s attached to the game's activities).
  *
  * @author Kyle Dodson
  * @since 1.0.0
  */
 public final class ZapicActivity extends Activity implements
-        AppManager.StateChangedListener,
         LoadingPageFragment.InteractionListener,
         OfflinePageFragment.InteractionListener {
     /**
-     * The fragment tag used to identify {@link ZapicFragment} instances.
-     */
-    @NonNull
-    private static final String FRAGMENT_TAG = "Zapic";
-
-    /**
-     * The {@link Intent} parameter that identifies the Zapic application page to open.
+     * The {@link Intent} parameter that identifies the Zapic JavaScript application page to open.
      */
     @NonNull
     private static final String PAGE_PARAM = "page";
@@ -51,28 +47,29 @@ public final class ZapicActivity extends Activity implements
      * The tag used to identify log messages.
      */
     @NonNull
-    private static final String TAG = "ZapicFragment";
+    private static final String TAG = "ZapicActivity";
 
     /**
-     * The Zapic application manager.
+     * The {@link WebView}.
      */
     @Nullable
-    private AppManager mAppManager;
+    private WebView mWebView;
 
     /**
-     * Creates a new instance.
+     * Creates a new {@link ZapicActivity} instance
      */
     public ZapicActivity() {
-        this.mAppManager = null;
+        this.mWebView = null;
     }
 
     /**
      * Creates an {@link Intent} that starts a {@link ZapicActivity} and opens the default Zapic
-     * application page.
+     * JavaScript application page.
      *
      * @param gameActivity The game's activity.
-     * @return             The {@link Intent}.
+     * @return The {@link Intent}.
      */
+    @MainThread
     @CheckResult
     @NonNull
     public static Intent createIntent(@NonNull final Activity gameActivity) {
@@ -81,149 +78,176 @@ public final class ZapicActivity extends Activity implements
 
     /**
      * Creates an {@link Intent} that starts a {@link ZapicActivity} and opens the specified Zapic
-     * application page.
+     * JavaScript application page.
      *
      * @param gameActivity The game's activity.
-     * @param page         The Zapic application page to open.
-     * @return             The {@link Intent}.
+     * @param page         The Zapic JavaScript application page to open.
+     * @return The {@link Intent}.
      */
+    @MainThread
     @CheckResult
     @NonNull
     public static Intent createIntent(@NonNull final Activity gameActivity, @NonNull final String page) {
         final Intent intent = new Intent(gameActivity, ZapicActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         intent.putExtra(ZapicActivity.PAGE_PARAM, page);
         return intent;
     }
 
-    /**
-     * Enables an immersive full-screen mode. This hides the system status and navigation bars until
-     * the user swipes in from the edges of the screen.
-     */
-    @MainThread
-    private void enableImmersiveFullScreenMode() {
-        this.getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_LOW_PROFILE);
-    }
-
-    @MainThread
     @Override
-    public void onAppStarted() {
-        assert this.mAppManager != null : "mAppManager == null";
-
-        // TODO: Show loading page, dispatch OPEN_PAGE, wait for PAGE_READY.
-        final FragmentManager fragmentManager = this.getFragmentManager();
-        final Fragment currentFragment = fragmentManager.findFragmentById(R.id.activity_zapic_container);
-        if (!(currentFragment instanceof AppPageFragment)) {
-            fragmentManager.beginTransaction().add(R.id.activity_zapic_container, AppPageFragment.createInstance()).commit();
-        }
-    }
-
-    @Override
-    public void onOffline() {
-        assert this.mAppManager != null : "mAppManager == null";
-        if (this.mAppManager.isAppStarted()) {
-            return;
-        }
-
-        final FragmentManager fragmentManager = this.getFragmentManager();
-        final Fragment currentFragment = fragmentManager.findFragmentById(R.id.activity_zapic_container);
-        if (!(currentFragment instanceof OfflinePageFragment)) {
-            fragmentManager.beginTransaction().add(R.id.activity_zapic_container, OfflinePageFragment.createInstance()).commit();
-        }
-    }
-
-    @Override
-    public void onOnline() {
-        assert this.mAppManager != null : "mAppManager == null";
-        if (this.mAppManager.isAppStarted()) {
-            return;
-        }
-
-        final FragmentManager fragmentManager = this.getFragmentManager();
-        final Fragment currentFragment = fragmentManager.findFragmentById(R.id.activity_zapic_container);
-        if (!(currentFragment instanceof LoadingPageFragment)) {
-            fragmentManager.beginTransaction().add(R.id.activity_zapic_container, LoadingPageFragment.createInstance()).commit();
-        }
-    }
-
-    @MainThread
-    @Override
-    public void onClose() {
+    public void close() {
         this.finish();
+    }
+
+// TODO: Determine if the following is required when we use a fullscreen theme.
+//    /**
+//     * Enables an immersive full-screen mode. This hides the system status and navigation bars until
+//     * the user swipes in from the edges of the screen.
+//     */
+//    @MainThread
+//    private void enableImmersiveFullScreenMode() {
+//        this.getWindow().getDecorView().setSystemUiVisibility(
+//                View.SYSTEM_UI_FLAG_FULLSCREEN
+//                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+//                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+//                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+//                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+//                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+//                        | View.SYSTEM_UI_FLAG_LOW_PROFILE);
+//    }
+
+    /**
+     * Gets the {@link WebView}.
+     *
+     * @return The {@link WebView}.
+     */
+    @CheckResult
+    @MainThread
+    @Nullable
+    WebView getWebView() {
+        return this.mWebView;
     }
 
     @MainThread
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
-        Log.d(TAG, "onCreate");
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onCreate");
+        }
+
         super.onCreate(savedInstanceState);
 
-        // Hide the system status and navigation bars.
-        this.enableImmersiveFullScreenMode();
+// TODO: Determine if the following is required when we use a fullscreen theme.
+//        // Hide the system status and navigation bars.
+//        this.enableImmersiveFullScreenMode();
 
-        // Get a reference to the AppManager (to keep it from being garbage collected).
-        if (this.mAppManager == null) {
-            this.mAppManager = AppManager.getInstance();
-        }
-
-        // Listen to application state changes.
-        this.mAppManager.addStateChangedListener(this);
-
-        // Render the page.
         this.setContentView(R.layout.activity_zapic);
-        final Fragment fragment;
-        if (this.mAppManager.isAppStarted()) {
-            // TODO: Show loading page, dispatch OPEN_PAGE, wait for PAGE_READY.
-            fragment = AppPageFragment.createInstance();
-        } else if (this.mAppManager.isOffline()) {
-            fragment = OfflinePageFragment.createInstance();
-        } else {
-            fragment = LoadingPageFragment.createInstance();
+        if (BuildConfig.DEBUG && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            final Slide slide = new Slide();
+            slide.setDuration(500);
+            this.getWindow().setEnterTransition(slide);
         }
 
-        final FragmentManager fragmentManager = this.getFragmentManager();
-        fragmentManager.beginTransaction().add(R.id.activity_zapic_container, fragment).commit();
-        fragmentManager.beginTransaction().add(ZapicFragment.createInstance(), ZapicActivity.FRAGMENT_TAG).commit();
-    }
+        // Attach Zapic.
+        Zapic.attachFragment(this);
+        this.getFragmentManager().executePendingTransactions();
 
-    @MainThread
-    @Override
-    public void onDestroy() {
-        Log.d(TAG, "onDestroy");
-        super.onDestroy();
+        ZapicFragment fragment = Zapic.getFragment(this);
+        assert fragment != null : "fragment == null";
+        App app = fragment.getApp();
+        assert app != null : "app == null";
+        this.mWebView = app.getWebView();
+        assert this.mWebView != null : "mWebView == null";
 
-        // Destroy the WebView (if this is the last view).
-        assert this.mAppManager != null : "mAppManager == null";
-        this.mAppManager.removeStateChangedListener(this);
-        this.mAppManager = null;
+        switch (app.getState()) {
+            case READY:
+                this.openAppPage();
+                break;
+            case STARTED:
+                this.openLoadingPage();
+                String page = this.getIntent().getStringExtra("page");
+                if (page == null) {
+                    page = "default";
+                }
+
+                final String escapedPage = page.replace("'", "\\'");
+                this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'OPEN_PAGE', payload: '" + escapedPage + "' })", null);
+                break;
+            default:
+                if (app.getConnected()) {
+                    this.openLoadingPage();
+                } else {
+                    this.openOfflinePage();
+                }
+        }
     }
 
     @MainThread
     @Override
     protected void onNewIntent(final Intent intent) {
-        Log.d(TAG, "onNewIntent");
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onNewIntent");
+        }
+
         super.onNewIntent(intent);
         this.setIntent(intent);
-
-        // TODO: If the app is loaded, navigate to the requested page. If the app is not loaded,
-        // ensure we navigate to the newly requested page.
     }
 
-    @MainThread
-    @Override
-    public void onWindowFocusChanged(final boolean hasFocus) {
-        Log.d(TAG, "onWindowFocusChanged");
-        super.onWindowFocusChanged(hasFocus);
+// TODO: Determine if the following is required when we use a fullscreen theme.
+//    @MainThread
+//    @Override
+//    public void onWindowFocusChanged(final boolean hasFocus) {
+//        if (BuildConfig.DEBUG) {
+//            Log.d(TAG, "onWindowFocusChanged");
+//        }
+//
+//        super.onWindowFocusChanged(hasFocus);
+//
+//        // Hide the system status and navigation bars.
+//        if (hasFocus) {
+//            this.enableImmersiveFullScreenMode();
+//        }
+//    }
 
-        // Hide the system status and navigation bars.
-        if (hasFocus) {
-            this.enableImmersiveFullScreenMode();
+    /**
+     * Opens the Zapic JavaScript application page.
+     */
+    @MainThread
+    void openAppPage() {
+        final FragmentManager fragmentManager = this.getFragmentManager();
+        final Fragment currentFragment = fragmentManager.findFragmentById(R.id.activity_zapic_container);
+        if (currentFragment == null) {
+            fragmentManager.beginTransaction().add(R.id.activity_zapic_container, AppPageFragment.createInstance()).commit();
+        } else if (!(currentFragment instanceof AppPageFragment)) {
+            fragmentManager.beginTransaction().replace(R.id.activity_zapic_container, AppPageFragment.createInstance()).commit();
+        }
+    }
+
+    /**
+     * Opens the loading page.
+     */
+    @MainThread
+    void openLoadingPage() {
+        final FragmentManager fragmentManager = this.getFragmentManager();
+        final Fragment currentFragment = fragmentManager.findFragmentById(R.id.activity_zapic_container);
+        if (currentFragment == null) {
+            fragmentManager.beginTransaction().add(R.id.activity_zapic_container, LoadingPageFragment.createInstance()).commit();
+        } else if (!(currentFragment instanceof LoadingPageFragment)) {
+            fragmentManager.beginTransaction().replace(R.id.activity_zapic_container, LoadingPageFragment.createInstance()).commit();
+        }
+    }
+
+    /**
+     * Opens the offline page.
+     */
+    @MainThread
+    void openOfflinePage() {
+        final FragmentManager fragmentManager = this.getFragmentManager();
+        final Fragment currentFragment = fragmentManager.findFragmentById(R.id.activity_zapic_container);
+        if (currentFragment == null) {
+            fragmentManager.beginTransaction().add(R.id.activity_zapic_container, OfflinePageFragment.createInstance()).commit();
+        } else if (!(currentFragment instanceof OfflinePageFragment)) {
+            fragmentManager.beginTransaction().replace(R.id.activity_zapic_container, OfflinePageFragment.createInstance()).commit();
         }
     }
 
@@ -234,32 +258,52 @@ public final class ZapicActivity extends Activity implements
     @MainThread
     @Override
     protected void onStart() {
-        Log.d(TAG, "onStart");
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onStart");
+        }
+
         super.onStart();
     }
 
     @MainThread
     @Override
     protected void onResume() {
-        Log.d(TAG, "onResume");
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onResume");
+        }
+
         super.onResume();
     }
 
     @MainThread
     @Override
     protected void onPause() {
-        Log.d(TAG, "onPause");
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onPause");
+        }
+
         super.onPause();
     }
 
     @MainThread
     @Override
     protected void onStop() {
-        Log.d(TAG, "onStop");
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onStop");
+        }
+
         super.onStop();
     }
 
-    // onDestroy
+    @MainThread
+    @Override
+    public void onDestroy() {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onDestroy");
+        }
+
+        super.onDestroy();
+    }
 
     //endregion
 }
