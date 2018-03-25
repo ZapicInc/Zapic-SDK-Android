@@ -1,10 +1,11 @@
-apply plugin: 'com.android.library'
+apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
 
     defaultConfig {
+        applicationId 'com.zapic.androiddemo'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -13,8 +14,8 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
-            consumerProguardFiles 'proguard-rules.pro'
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
 
@@ -26,8 +27,6 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.android.support:cardview-v7:27.1.0'
-    implementation 'com.android.support:support-fragment:27.1.0'
-    implementation "com.google.android.gms:play-services-auth:${rootProject.ext.playServicesVersion}"
-    implementation "com.google.android.gms:play-services-games:${rootProject.ext.playServicesVersion}"
+    implementation project(':zapic')
+    implementation 'com.android.support:support-annotations:27.1.0'
 }

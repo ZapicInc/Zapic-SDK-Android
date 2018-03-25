@@ -1,9 +1,9 @@
 # Keep Java API
--keep class com.zapic.android.sdk.Zapic {
+-keep class com.zapic.sdk.android.Zapic {
   public *;
 }
 
 # Keep JavaScript API
--keepclassmembers class com.zapic.android.sdk.AppJavaScriptBridge {
+-keepclassmembers class com.zapic.sdk.android.WebViewJavascriptInterface {
   public *;
 }

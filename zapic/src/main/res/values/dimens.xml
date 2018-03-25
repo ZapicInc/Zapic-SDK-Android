@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="logo">64dp</dimen>
-    <dimen name="margin">16dp</dimen>
-    <dimen name="spinner">32dp</dimen>
+    <dimen name="component_zapic_app_bar_close_margin">8dp</dimen>
+    <dimen name="component_zapic_app_bar_elevation">6dp</dimen>
+    <dimen name="component_zapic_app_bar_gradient_height">6dp</dimen>
+    <dimen name="component_zapic_app_bar_height">48dp</dimen>
+    <dimen name="component_zapic_app_bar_logo_size">36dp</dimen>
+
+    <dimen name="component_zapic_toast_elevation">6dp</dimen>
+    <dimen name="component_zapic_toast_icon_size">36dp</dimen>
+    <dimen name="component_zapic_toast_padding">16dp</dimen>
+
+    <dimen name="fragment_zapic_loading_progress_size">32dp</dimen>
+
+    <dimen name="fragment_zapic_offline_message_padding">16dp</dimen>
 </resources>
