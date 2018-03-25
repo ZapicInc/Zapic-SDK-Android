@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:endColor="@color/zapic_blue"
+        android:startColor="@color/zapic_green" />
+</shape>

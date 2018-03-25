@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.zapic.android.sdk">
+    package="com.zapic.sdk.android">
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <application>
-        <activity android:name=".ZapicActivity"
+        <activity
+            android:name=".ZapicActivity"
+            android:configChanges="orientation|screenSize"
             android:theme="@style/ZapicActivityTheme" />
 
         <meta-data
@@ -15,6 +18,15 @@
         <meta-data
             android:name="android.webkit.WebView.MetricsOptOut"
             android:value="true" />
-    </application>
 
+        <provider
+            android:name="android.support.v4.content.FileProvider"
+            android:authorities="${applicationId}.zapic"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths" />
+        </provider>
+    </application>
 </manifest>

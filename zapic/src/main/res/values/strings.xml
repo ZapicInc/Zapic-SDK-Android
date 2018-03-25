@@ -1,9 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="fragment_page_loading_close">Close</string>
-    <string name="fragment_page_loading_logo">Zapic</string>
-    <string name="fragment_page_offline_close">Close</string>
-    <string name="fragment_page_offline_logo">Zapic</string>
-    <string name="fragment_page_offline_message">Zapic could not be loaded. Please check your network connection and try again.</string>
-    <string name="fragment_page_offline_retry">Retry</string>
+    <string name="component_zapic_app_bar_close">Done</string>
+    <string name="component_zapic_app_bar_logo">Zapic</string>
+
+    <string name="component_zapic_toast_icon">Zapic</string>
+
+    <string name="fragment_zapic_offline_message">Zapic could not be loaded. Please check your network connection and try again.</string>
+
+    <string name="zapic_activity_camera_error">A camera app could not be found.</string>
+    <string name="zapic_activity_folder_error">A photos folder could not be found.</string>
+    <string name="zapic_activity_image_permission_camera_message">You have not granted permission to use the camera. Please change your device\'s settings and try again.</string>
+    <string name="zapic_activity_image_permission_library_message">You have not granted permission to view photos in storage. Please change your device\'s settings and try again.</string>
+    <string name="zapic_activity_image_permission_submit">Open Settings</string>
+    <string name="zapic_activity_image_permission_title">Select Photo</string>
+    <string name="zapic_activity_image_source_cancel">Cancel</string>
+    <string-array name="zapic_activity_image_source_items">
+        <item>Take New Photo</item>
+        <item>Choose Existing Photo</item>
+    </string-array>
+    <string name="zapic_activity_image_source_title">Select Photo</string>
+    <string name="zapic_activity_library_error">A media library app could not be found.</string>
+    <string name="zapic_activity_settings_error">A settings app could not be found.</string>
 </resources>

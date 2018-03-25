@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="ZapicActivityTheme" parent="android:Theme.Material.Light.NoActionBar.Fullscreen" >
+    <style name="ZapicActivityTheme" parent="android:Theme.Material.Light.NoActionBar.Fullscreen">
         <item name="android:colorAccent">@color/zapic_primary</item>
         <item name="android:colorPrimary">@color/zapic_green</item>
     </style>

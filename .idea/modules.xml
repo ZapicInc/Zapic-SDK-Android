@@ -3,8 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Zapic-SDK-Android.iml" filepath="$PROJECT_DIR$/Zapic-SDK-Android.iml" />
-      <module fileurl="file://$PROJECT_DIR$/demo-app/demo-app.iml" filepath="$PROJECT_DIR$/demo-app/demo-app.iml" />
       <module fileurl="file://$PROJECT_DIR$/zapic/zapic.iml" filepath="$PROJECT_DIR$/zapic/zapic.iml" />
+      <module fileurl="file://$PROJECT_DIR$/zapic-demo/zapic-demo.iml" filepath="$PROJECT_DIR$/zapic-demo/zapic-demo.iml" />
     </modules>
   </component>
 </project>
