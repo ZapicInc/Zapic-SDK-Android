@@ -12,7 +12,6 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.support.annotation.CheckResult;
@@ -471,24 +470,34 @@ public final class ZapicActivity extends FragmentActivity {
     }
 
     private void startImageCameraActivity() {
-        final File filesDir = this.getApplicationContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        final File filesDir = this.getApplicationContext().getFilesDir();
         if (filesDir == null) {
             assert this.mWebViewManager != null : "mWebViewManager is null";
             this.mWebViewManager.cancelImageUpload();
 
             Toast.makeText(this.getApplicationContext(), R.string.zapic_activity_folder_error, Toast.LENGTH_SHORT).show();
-        } else {
-            this.mImageCameraFile = new File(filesDir.getAbsolutePath() + File.separator + "IMG_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date()) + ".jpg");
-            final Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(this.getApplicationContext(), this.getApplicationContext().getPackageName() + ".zapic", this.mImageCameraFile));
-            try {
-                this.startActivityForResult(intent, IMAGE_CAMERA_REQUEST);
-            } catch (ActivityNotFoundException e) {
-                assert this.mWebViewManager != null : "mWebViewManager is null";
-                this.mWebViewManager.cancelImageUpload();
+            return;
+        }
 
-                Toast.makeText(this.getApplicationContext(), R.string.zapic_activity_camera_error, Toast.LENGTH_SHORT).show();
-            }
+        final File zapicDir = new File(filesDir.getAbsolutePath() + File.separator + "Zapic");
+        if (!zapicDir.isDirectory() && !zapicDir.mkdirs()) {
+            assert this.mWebViewManager != null : "mWebViewManager is null";
+            this.mWebViewManager.cancelImageUpload();
+
+            Toast.makeText(this.getApplicationContext(), R.string.zapic_activity_folder_error, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        this.mImageCameraFile = new File(zapicDir.getAbsolutePath() + File.separator + "IMG_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date()) + ".jpg");
+        final Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, FileProvider.getUriForFile(this.getApplicationContext(), this.getApplicationContext().getPackageName() + ".zapic", this.mImageCameraFile));
+        try {
+            this.startActivityForResult(intent, IMAGE_CAMERA_REQUEST);
+        } catch (ActivityNotFoundException e) {
+            assert this.mWebViewManager != null : "mWebViewManager is null";
+            this.mWebViewManager.cancelImageUpload();
+
+            Toast.makeText(this.getApplicationContext(), R.string.zapic_activity_camera_error, Toast.LENGTH_SHORT).show();
         }
     }
 
