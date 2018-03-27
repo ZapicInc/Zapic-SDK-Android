@@ -1,8 +1,10 @@
 package com.zapic.sdk.android;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Handler.Callback;
 import android.os.Message;
@@ -10,15 +12,24 @@ import android.support.annotation.MainThread;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.WorkerThread;
+import android.support.v4.content.FileProvider;
 import android.util.Base64;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
+import android.webkit.MimeTypeMap;
 import android.webkit.WebView;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 final class WebViewJavascriptInterface implements Callback {
@@ -56,6 +67,11 @@ final class WebViewJavascriptInterface implements Callback {
      * Identifies the "SHOW_BANNER" action type.
      */
     private static final int SHOW_BANNER = 1006;
+
+    /**
+     * Identifies the "SHOW_SHARE_MENU" action type.
+     */
+    private static final int SHOW_SHARE_MENU = 1007;
 
     /**
      * The tag used to identify log messages.
@@ -145,9 +161,50 @@ final class WebViewJavascriptInterface implements Callback {
             case "SHOW_BANNER":
                 this.onShowBannerDispatched(action);
                 break;
+            case "SHOW_SHARE_MENU":
+                this.onShowShareMenuDispatched(action);
+                break;
             default:
                 break;
         }
+    }
+
+    @Override
+    public boolean handleMessage(@Nullable final Message msg) {
+        if (msg == null) {
+            return false;
+        }
+
+        @SuppressWarnings("unchecked") final Map<String, Object> args = (Map<String, Object>) msg.obj;
+        switch (msg.what) {
+            case APP_LOADED:
+                this.onAppLoadedHandled();
+                break;
+            case APP_STARTED:
+                this.onAppStartedHandled();
+                break;
+            case CLOSE_PAGE_REQUESTED:
+                this.onClosePageRequestedHandled();
+                break;
+            case LOGIN:
+                this.onLoginHandled();
+                break;
+            case LOGOUT:
+                this.onLogoutHandled();
+                break;
+            case PAGE_READY:
+                this.onPageReadyHandled();
+                break;
+            case SHOW_BANNER:
+                this.onShowBannerHandled(args);
+                break;
+            case SHOW_SHARE_MENU:
+                this.onShowShareMenuHandled(args);
+            default:
+                break;
+        }
+
+        return true;
     }
 
     @WorkerThread
@@ -272,8 +329,8 @@ final class WebViewJavascriptInterface implements Callback {
             icon = null;
         } else {
             try {
-                byte[] imageBytes = Base64.decode(encodedIcon, Base64.DEFAULT);
-                icon = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+                byte[] iconBytes = Base64.decode(encodedIcon, Base64.DEFAULT);
+                icon = BitmapFactory.decodeByteArray(iconBytes, 0, iconBytes.length);
             } catch (IllegalArgumentException e) {
                 if (BuildConfig.DEBUG) {
                     Log.e(TAG, "Failed to parse icon", e);
@@ -300,39 +357,132 @@ final class WebViewJavascriptInterface implements Callback {
         NotificationUtilities.showBanner(this.mContext, (String) args.get("title"), (String) args.get("subtitle"), (Bitmap) args.get("icon"));
     }
 
-    @Override
-    public boolean handleMessage(@Nullable final Message msg) {
-        if (msg == null) {
-            return false;
+    @WorkerThread
+    private void onShowShareMenuDispatched(@NonNull final JSONObject action) {
+        Map<String, Object> args = new HashMap<>();
+        String text;
+        String url;
+        String encodedImage;
+        try {
+            final JSONObject payload = action.getJSONObject("payload");
+            text = payload.optString("text");
+            url = payload.optString("url");
+            encodedImage = payload.optString("image");
+        } catch (JSONException e) {
+            // TODO: Send an error to the JavaScript application.
+            return;
         }
 
-        @SuppressWarnings("unchecked") final Map<String, Object> args = (Map<String, Object>) msg.obj;
-        switch (msg.what) {
-            case APP_LOADED:
-                this.onAppLoadedHandled();
-                break;
-            case APP_STARTED:
-                this.onAppStartedHandled();
-                break;
-            case CLOSE_PAGE_REQUESTED:
-                this.onClosePageRequestedHandled();
-                break;
-            case LOGIN:
-                this.onLoginHandled();
-                break;
-            case LOGOUT:
-                this.onLogoutHandled();
-                break;
-            case PAGE_READY:
-                this.onPageReadyHandled();
-                break;
-            case SHOW_BANNER:
-                this.onShowBannerHandled(args);
-                break;
-            default:
-                break;
+        if (!text.equals("")) {
+            args.put("text", text);
         }
 
-        return true;
+        if (!url.equals("")) {
+            args.put("url", url);
+        }
+
+        if (!encodedImage.equals("")) {
+            byte[] imageBytes = Base64.decode(encodedImage, Base64.DEFAULT);
+            String imageMimeType;
+            try {
+                // Get the mime type without allocating memory for the pixels.
+                final BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inJustDecodeBounds = true;
+                BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length, options);
+                imageMimeType = options.outMimeType;
+            } catch (IllegalArgumentException e) {
+                if (BuildConfig.DEBUG) {
+                    Log.e(TAG, "Failed to parse image", e);
+                }
+
+                imageMimeType = null;
+            }
+
+            File imageFile;
+            if (imageMimeType != null) {
+                final File filesDir = this.mContext.getFilesDir();
+                if (filesDir == null) {
+                    imageFile = null;
+                } else {
+                    final File zapicDir = new File(filesDir.getAbsolutePath() + File.separator + "Zapic");
+                    if (!zapicDir.isDirectory() && !zapicDir.mkdirs()) {
+                        imageFile = null;
+                    } else {
+                        String imageFileExtension = MimeTypeMap.getSingleton().getExtensionFromMimeType(imageMimeType);
+                        if (imageFileExtension == null) {
+                            imageFileExtension = "file";
+                        }
+
+                        imageFile = new File(zapicDir.getAbsolutePath() + File.separator + "IMG_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date()) + "." + imageFileExtension);
+                    }
+                }
+            } else {
+                imageFile = null;
+            }
+
+            Uri imageUri;
+            if (imageFile != null) {
+                try {
+                    BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(imageFile));
+                    outputStream.write(imageBytes);
+                    outputStream.flush();
+                    outputStream.close();
+
+                    final String packageName = this.mContext.getPackageName();
+                    imageUri = FileProvider.getUriForFile(this.mContext, packageName + ".zapic", imageFile);
+                } catch (IllegalArgumentException | IOException e) {
+                    imageUri = null;
+                }
+            } else {
+                imageUri = null;
+            }
+
+            if (imageUri != null) {
+                args.put("imageMimeType", imageMimeType);
+                args.put("imageUri", imageUri);
+            }
+        }
+
+        if (args.size() > 0) {
+            this.mHandler.obtainMessage(SHOW_SHARE_MENU, args).sendToTarget();
+        }
+    }
+
+    @MainThread
+    private void onShowShareMenuHandled(Map<String, Object> args) {
+        final WebViewManager webViewManager = WebViewManager.getInstance();
+        final ZapicActivity activity = webViewManager.getActivity();
+        if (activity == null) {
+            return;
+        }
+
+        final String text = args.containsKey("text") ? (String) args.get("text") : null;
+        final String url = args.containsKey("url") ? (String) args.get("url") : null;
+        final String message = text != null && url != null
+                ? text + " " + url
+                : text != null ? text : url;
+
+        final String imageMimeType = args.containsKey("imageMimeType") ? (String) args.get("imageMimeType") : null;
+        final Uri imageUri = args.containsKey("imageUri") ? (Uri) args.get("imageUri") : null;
+
+        Intent intent;
+        if (imageUri != null && imageMimeType != null) {
+            intent = new Intent(Intent.ACTION_SEND);
+            intent.setType(imageMimeType);
+            intent.putExtra(Intent.EXTRA_STREAM, imageUri);
+            if (message != null) {
+                intent.putExtra(Intent.EXTRA_TEXT, message);
+            }
+        } else if (message != null) {
+            intent = new Intent(Intent.ACTION_SEND);
+            intent.setType("text/plain");
+            intent.putExtra(Intent.EXTRA_TEXT, message);
+        } else {
+            intent = null;
+        }
+
+        if (intent != null) {
+            activity.startActivity(Intent.createChooser(intent, "Share"));
+        }
     }
 }

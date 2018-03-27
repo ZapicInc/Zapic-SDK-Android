@@ -270,7 +270,7 @@ final class AppSourceAsyncTask extends AsyncTask<Void, Integer, AppSource> imple
         final String script = "<script>" +
                 "window.zapic = {" +
                 "  environment: 'webview'," +
-                "  version: 1," +
+                "  version: 2," +
                 "  androidVersion: '" + String.valueOf(Build.VERSION.SDK_INT).replace("'", "\\'") + "'," +
                 "  onLoaded: function (action$, publishAction) {" +
                 "    window.zapic.dispatch = function (action) {" +
