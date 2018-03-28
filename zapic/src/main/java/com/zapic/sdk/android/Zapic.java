@@ -201,16 +201,16 @@ public final class Zapic {
             throw new IllegalArgumentException("parameters must not be null");
         }
 
-        JSONObject payload;
+        JSONObject params;
         try {
-            payload = new JSONObject(parameters);
+            params = new JSONObject(parameters);
         } catch (JSONException e) {
-            throw new IllegalArgumentException("payload must be a valid JSON object");
+            throw new IllegalArgumentException("parameters must be a valid JSON object");
         }
 
         JSONObject gameplayEvent;
         try {
-            gameplayEvent = new JSONObject().put("type", "gameplay").put("payload", payload);
+            gameplayEvent = new JSONObject().put("type", "gameplay").put("params", params);
         } catch (JSONException ignored) {
             return;
         }
