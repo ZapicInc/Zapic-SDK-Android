@@ -45,12 +45,6 @@ final class WebViewManager {
     private static final String TAG = "WebViewManager";
 
     /**
-     * The Zapic JavaScript application source URL.
-     */
-    @NonNull
-    private static final String APP_SOURCE_URL = "https://app.zapic.net";
-
-    /**
      * A weak reference to the {@link WebViewManager} instance.
      * <p>
      * A strong reference to the {@link WebViewManager} instance is kept by {@link ZapicActivity}
@@ -364,6 +358,7 @@ final class WebViewManager {
     }
 
     @MainThread
+    @SuppressWarnings("deprecation")
     void onActivityCreated(@NonNull final ZapicActivity activity) {
         this.mActivity = activity;
         if (this.mWebView == null) {
@@ -373,7 +368,7 @@ final class WebViewManager {
 
             this.createEventHandler(activity);
             this.createWebView(activity);
-            this.mAsyncTask = new AppSourceAsyncTask(APP_SOURCE_URL, activity.getApplicationContext().getCacheDir()).execute();
+            this.mAsyncTask = new AppSourceAsyncTask(AppSourceConfig.getUrl(), activity.getApplicationContext().getCacheDir()).execute();
         } else if (this.mStarted) {
             this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'OPEN_PAGE', payload: '" + activity.getPageParameter() + "' })", null);
         }
@@ -436,6 +431,7 @@ final class WebViewManager {
     }
 
     @MainThread
+    @SuppressWarnings("deprecation")
     void onFragmentCreated(@NonNull final ZapicFragment fragment) {
         this.mFragments.add(fragment);
         if (this.mWebView == null) {
@@ -445,7 +441,7 @@ final class WebViewManager {
 
             this.createEventHandler(fragment.getActivity());
             this.createWebView(fragment.getActivity());
-            this.mAsyncTask = new AppSourceAsyncTask(APP_SOURCE_URL, fragment.getActivity().getApplicationContext().getCacheDir()).execute();
+            this.mAsyncTask = new AppSourceAsyncTask(AppSourceConfig.getUrl(), fragment.getActivity().getApplicationContext().getCacheDir()).execute();
         }
     }
 
@@ -633,9 +629,11 @@ final class WebViewManager {
     }
 
     @MainThread
+    @SuppressWarnings("deprecation")
     void submitLoadApp(@NonNull final AppSource appSource) {
         if (this.mWebView != null) {
-            this.mWebView.loadDataWithBaseURL(APP_SOURCE_URL, appSource.getHtml(), "text/html", "utf-8", APP_SOURCE_URL);
+            final String url = AppSourceConfig.getUrl();
+            this.mWebView.loadDataWithBaseURL(url, appSource.getHtml(), "text/html", "utf-8", url);
         }
     }
 }
