@@ -2,33 +2,44 @@ package com.zapic.androiddemo;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.PointF;
+import android.hardware.SensorManager;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.RelativeLayout;
 
+import com.squareup.seismic.ShakeDetector;
+import com.zapic.sdk.android.AppSourceConfig;
 import com.zapic.sdk.android.Zapic;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements
+        ShakeDetector.Listener,
+        SharedPreferences.OnSharedPreferenceChangeListener {
     /**
      * The minimum X or Y delta needed to update {@link #totalTouchDistance}.
      */
     private static final float TOUCH_TOLERANCE = 4f;
 
-    /**
-     * The last touch point.
-     */
     private PointF lastTouchPoint;
 
-    /**
-     *
-     */
+    private SensorManager sensorManager;
+
+    private ShakeDetector shakeDetector;
+
+    private SharedPreferences sharedPreferences;
+
     private double totalTouchDistance;
 
     public MainActivity() {
         this.lastTouchPoint = null;
+        this.sensorManager = null;
+        this.shakeDetector = null;
         this.totalTouchDistance = 0f;
     }
 
@@ -48,7 +59,27 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    public void hearShake() {
+        Intent intent = new Intent(this, SettingsActivity.class);
+        startActivity(intent);
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
     protected void onCreate(final Bundle savedInstanceState) {
+        // Configure Zapic. Note: This is only for debugging! Do not use this in production apps!
+        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        boolean cachePref = this.sharedPreferences.getBoolean(SettingsActivity.KEY_CACHE, true);
+        if (cachePref) {
+            AppSourceConfig.enableCache();
+        } else {
+            AppSourceConfig.disableCache();
+        }
+
+        String urlPref = this.sharedPreferences.getString(SettingsActivity.KEY_URL, "https://app.zapic.net");
+        AppSourceConfig.setUrl(urlPref);
+
         // Hide the system status and navigation bars.
         this.enableImmersiveFullScreenMode();
         this.getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
@@ -90,6 +121,27 @@ public class MainActivity extends Activity {
 
         // Start Zapic.
         Zapic.attachFragment(this);
+
+        // Get accelerometer.
+        this.sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        if (this.sensorManager != null) {
+            this.shakeDetector = new ShakeDetector(this);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        // Disable shake detector.
+        if (this.shakeDetector != null) {
+            this.shakeDetector.stop();
+        }
+
+        // Disable preference change listener.
+        if (this.sharedPreferences != null) {
+            this.sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
+        }
+
+        super.onPause();
     }
 
     @Override
@@ -105,7 +157,35 @@ public class MainActivity extends Activity {
             }
         });
 
+        // Enable shake detector.
+        if (this.shakeDetector != null) {
+            this.shakeDetector.start(this.sensorManager);
+        }
+
+        // Enable preference change listener.
+        if (this.sharedPreferences != null) {
+            this.sharedPreferences.registerOnSharedPreferenceChangeListener(this);
+        }
+
         super.onResume();
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if (key.equals(SettingsActivity.KEY_CACHE)) {
+            boolean cachePref = sharedPreferences.getBoolean(SettingsActivity.KEY_CACHE, true);
+            if (cachePref) {
+                AppSourceConfig.enableCache();
+            } else {
+                AppSourceConfig.disableCache();
+            }
+        }
+
+        if (key.equals(SettingsActivity.KEY_URL)) {
+            String urlPref = sharedPreferences.getString(SettingsActivity.KEY_URL, "https://app.zapic.net");
+            AppSourceConfig.setUrl(urlPref);
+        }
     }
 
     private boolean onTouch(@NonNull final MotionEvent motionEvent) {

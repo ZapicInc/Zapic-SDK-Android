@@ -68,7 +68,7 @@ final class AppSourceAsyncTask extends AsyncTask<Void, Integer, AppSource> imple
     @Override
     @WorkerThread
     protected AppSource doInBackground(final Void... voids) {
-        final AppSource cachedAppSource = this.getFromCache();
+        final AppSource cachedAppSource = AppSourceConfig.isCacheEnabled() ? this.getFromCache() : null;
         if (cachedAppSource != null) {
             final long lastValidated = cachedAppSource.getLastValidated();
             final long now = System.currentTimeMillis();
