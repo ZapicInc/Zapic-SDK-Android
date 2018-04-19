@@ -3,6 +3,7 @@
     package="com.zapic.androiddemo">
 
     <application
+        android:name=".MainApplication"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -11,11 +12,35 @@
         android:theme="@style/FullscreenTheme">
         <activity
             android:name=".MainActivity"
-            android:label="@string/app_name">
+            android:label="@string/app_name"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Branch URI Scheme -->
+            <intent-filter>
+                <data
+                    android:host="open"
+                    android:scheme="zapic-android-demo" />
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <!-- Branch App Links -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="6k50.app.link"
+                    android:scheme="https" />
             </intent-filter>
         </activity>
         <activity
@@ -28,12 +53,36 @@
                 android:value=".MainActivity" />
         </activity>
 
+        <!-- Google Play Games and Zapic -->
         <meta-data
             android:name="com.google.android.gms.games.APP_ID"
             android:value="@string/play_games_app_id" />
         <meta-data
             android:name="com.google.android.gms.games.WEB_CLIENT_ID"
             android:value="@string/play_games_web_client_id" />
+
+        <!-- Branch -->
+        <meta-data
+            android:name="io.branch.sdk.BranchKey"
+            android:value="key_live_ihzWpPrQ3FuH8fhQw5HBwbjewBgAKd8j" />
+        <meta-data
+            android:name="io.branch.sdk.BranchKey.test"
+            android:value="key_test_njB0mTvM1qAS0fpSx2SstbndBDgyUmN9" />
+
+        <!-- Branch - Test Mode -->
+        <meta-data
+            android:name="io.branch.sdk.TestMode"
+            android:value="false" />
+
+        <!-- Branch - Install Referrer Tracking -->
+        <receiver
+            android:name="io.branch.referral.InstallListener"
+            android:exported="true"
+            android:permission="android.permission.INSTALL_PACKAGES">
+            <intent-filter>
+                <action android:name="com.android.vending.INSTALL_REFERRER" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

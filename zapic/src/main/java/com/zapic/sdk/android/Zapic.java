@@ -1,6 +1,7 @@
 package com.zapic.sdk.android;
 
 import android.app.Activity;
+import android.app.Application;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.Intent;
@@ -16,6 +17,11 @@ import org.json.JSONObject;
 
 /**
  * Provides static methods to manage and interact with Zapic.
+ * <p>
+ * It is the responsibility of the game's {@link Application} to call the
+ * {@link #start(Application, AuthenticationHandler)} method during its {@code onCreate} lifecycle
+ * method. The game may optionally register an authentication handler that is notified when a player
+ * is logged in or out.
  * <p>
  * It is the responsibility of the game's activity (or game's activities if there are multiple) to
  * call the {@link #attachFragment(Activity)} method during its {@code onCreate} lifecycle method.
@@ -47,10 +53,23 @@ public final class Zapic {
     private static final String FRAGMENT_TAG = "Zapic";
 
     /**
-     * The player's unique identifier.
+     * The notification tag containing the Zapic referral content.
+     */
+    @NonNull
+    @SuppressWarnings("unused")
+    public static final String NOTIFICATION_TAG = "zapic_player_token";
+
+    /**
+     * The authentication handler.
      */
     @Nullable
-    private static volatile String playerId;
+    private static volatile Zapic.AuthenticationHandler authenticationHandler;
+
+    /**
+     * The current player.
+     */
+    @Nullable
+    private static volatile ZapicPlayer player;
 
     /**
      * Prevents creating a new {@link Zapic} instance.
@@ -104,26 +123,56 @@ public final class Zapic {
     }
 
     /**
-     * Gets the player's unique identifier.
+     * Gets the current player.
      *
-     * @return The player's unique identifier or {@code null} if the player has not logged in.
+     * @return The current player or {@code null} if the current player has not logged in.
      */
     @AnyThread
     @CheckResult
     @Nullable
     @SuppressWarnings({"UnusedDeclaration", "WeakerAccess"}) // documented as public API
-    public static String getPlayerId() {
-        return Zapic.playerId;
+    public static ZapicPlayer getPlayer() {
+        return Zapic.player;
     }
 
     /**
-     * Sets the player's unique identifier.
+     * Handles custom data provided by a push notification, deep link, etc..
      *
-     * @param playerId The player's unique identifier or {@code null} if the player has logged out.
+     * @param data The custom data.
+     * @throws IllegalArgumentException If {@code data} is {@code null}.
      */
     @AnyThread
-    static void setPlayerId(@Nullable final String playerId) {
-        Zapic.playerId = playerId;
+    public static void handleData(@Nullable final JSONObject data) {
+        if (data == null) {
+            throw new IllegalArgumentException("data must not be null");
+        }
+
+        try {
+            WebViewManager.getInstance().handleData(data.getString("zapic"));
+        } catch (JSONException ignored) {
+        }
+    }
+
+    /**
+     * Sets the current player.
+     *
+     * @param player The current player or {@code null} if the current player has logged out.
+     */
+    @AnyThread
+    static void setPlayer(@Nullable final ZapicPlayer player) {
+        final ZapicPlayer previousPlayer = Zapic.player;
+        Zapic.player = player;
+
+        final Zapic.AuthenticationHandler authenticationHandler = Zapic.authenticationHandler;
+        if (authenticationHandler != null) {
+            if (previousPlayer != null) {
+                authenticationHandler.onLogout(previousPlayer);
+            }
+
+            if (player != null) {
+                authenticationHandler.onLogin(player);
+            }
+        }
     }
 
     /**
@@ -180,6 +229,27 @@ public final class Zapic {
     }
 
     /**
+     * Initializes Zapic and, optionally, registers an authentication handler that is notified when
+     * a player is logged in or out.
+     * <p>
+     * This must only be called once for the lifetime of the application.
+     *
+     * @param application           The application.
+     * @param authenticationHandler The authentication handler.
+     * @throws IllegalArgumentException If {@code application} is {@code null}.
+     * @since 1.0.2
+     */
+    @AnyThread
+    @SuppressWarnings("unused")
+    public static void start(@Nullable Application application, @Nullable Zapic.AuthenticationHandler authenticationHandler) {
+        if (application == null) {
+            throw new IllegalArgumentException("application must not be null");
+        }
+
+        Zapic.authenticationHandler = authenticationHandler;
+    }
+
+    /**
      * Submits a gameplay event to Zapic.
      *
      * @param gameActivity The game's activity.
@@ -216,5 +286,29 @@ public final class Zapic {
         }
 
         WebViewManager.getInstance().submitEvent(gameplayEvent);
+    }
+
+    /**
+     * Represents an authentication handler that is notified when a player is logged in or out.
+     *
+     * @author Kyle Dodson
+     * @since 1.0.2
+     */
+    public interface AuthenticationHandler {
+        /**
+         * The current player.
+         *
+         * @param player The current player.
+         */
+        @AnyThread
+        void onLogin(@NonNull ZapicPlayer player);
+
+        /**
+         * The previous player.
+         *
+         * @param player The previous player.
+         */
+        @AnyThread
+        void onLogout(@NonNull ZapicPlayer player);
     }
 }

@@ -10,6 +10,7 @@ import android.hardware.SensorManager;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.RelativeLayout;
@@ -18,12 +19,16 @@ import com.squareup.seismic.ShakeDetector;
 import com.zapic.sdk.android.AppSourceConfig;
 import com.zapic.sdk.android.Zapic;
 
+import org.json.JSONObject;
+
+import io.branch.referral.Branch;
+import io.branch.referral.BranchError;
+
 public class MainActivity extends Activity implements
         ShakeDetector.Listener,
         SharedPreferences.OnSharedPreferenceChangeListener {
-    /**
-     * The minimum X or Y delta needed to update {@link #totalTouchDistance}.
-     */
+    private static final String TAG = "MainActivity";
+
     private static final float TOUCH_TOLERANCE = 4f;
 
     private PointF lastTouchPoint;
@@ -43,10 +48,6 @@ public class MainActivity extends Activity implements
         this.totalTouchDistance = 0f;
     }
 
-    /**
-     * Enables an immersive full-screen mode. This hides the system status and navigation bars until
-     * the user swipes in from the edges of the screen.
-     */
     private void enableImmersiveFullScreenMode() {
         this.getWindow().getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_FULLSCREEN
@@ -130,6 +131,13 @@ public class MainActivity extends Activity implements
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+
+        this.setIntent(intent);
+    }
+
+    @Override
     protected void onPause() {
         // Disable shake detector.
         if (this.shakeDetector != null) {
@@ -186,6 +194,23 @@ public class MainActivity extends Activity implements
             String urlPref = sharedPreferences.getString(SettingsActivity.KEY_URL, "https://app.zapic.net");
             AppSourceConfig.setUrl(urlPref);
         }
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        Branch branch = Branch.getInstance();
+        branch.initSession(new Branch.BranchReferralInitListener() {
+            @Override
+            public void onInitFinished(JSONObject referringParams, BranchError error) {
+                if (referringParams != null) {
+                    Zapic.handleData(referringParams);
+                } else {
+                    Log.e(TAG, error.getMessage());
+                }
+            }
+        }, this.getIntent().getData(), this);
     }
 
     private boolean onTouch(@NonNull final MotionEvent motionEvent) {
