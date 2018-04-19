@@ -59,6 +59,9 @@ final class WebViewManager {
     @NonNull
     private static final String VARIABLE_NAME = "androidWebView";
 
+    @Nullable
+    private static String mPendingData = null;
+
     @AnyThread
     static WebViewManager getInstance() {
         WebViewManager instance = WebViewManager.INSTANCE.get();
@@ -105,7 +108,7 @@ final class WebViewManager {
     private final LinkedList<JSONObject> mPendingEvents;
 
     @NonNull
-    private final Object mPendingEventsLock;
+    private final Object mPendingLock;
 
     private boolean mStarted;
 
@@ -121,7 +124,7 @@ final class WebViewManager {
         this.mImageUploadCallback = null;
         this.mLoaded = false;
         this.mPendingEvents = new LinkedList<>();
-        this.mPendingEventsLock = new Object();
+        this.mPendingLock = new Object();
         this.mStarted = false;
         this.mWebView = null;
     }
@@ -279,24 +282,42 @@ final class WebViewManager {
             this.mHandler = new Handler(context.getApplicationContext().getMainLooper(), new Callback() {
                 @Override
                 public boolean handleMessage(@Nullable final Message msg) {
-                    if (msg == null || msg.what != 0) {
+                    if (msg == null) {
                         return false;
                     }
 
-                    final JSONObject event = (JSONObject) msg.obj;
-                    if (WebViewManager.this.mWebView == null) {
-                        synchronized (WebViewManager.this.mPendingEventsLock) {
-                            if (WebViewManager.this.mPendingEvents.size() == 1000) {
-                                WebViewManager.this.mPendingEvents.poll();
+                    switch (msg.what) {
+                        case 0: {
+                            final JSONObject event = (JSONObject) msg.obj;
+                            if (WebViewManager.this.mWebView == null) {
+                                synchronized (WebViewManager.this.mPendingLock) {
+                                    if (WebViewManager.this.mPendingEvents.size() == 1000) {
+                                        WebViewManager.this.mPendingEvents.poll();
+                                    }
+
+                                    WebViewManager.this.mPendingEvents.add(event);
+                                }
+                            } else {
+                                WebViewManager.this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'SUBMIT_EVENT', payload: " + event.toString() + " })", null);
                             }
 
-                            WebViewManager.this.mPendingEvents.add(event);
+                            return true;
                         }
-                    } else {
-                        WebViewManager.this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'SUBMIT_EVENT', payload: " + event.toString() + " })", null);
-                    }
+                        case 1: {
+                            final String data = (String) msg.obj;
+                            if (WebViewManager.this.mWebView == null) {
+                                synchronized (WebViewManager.this.mPendingLock) {
+                                    WebViewManager.mPendingData = data;
+                                }
+                            } else {
+                                WebViewManager.this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'HANDLE_DATA', payload: " + data + " })", null);
+                            }
 
-                    return true;
+                            return true;
+                        }
+                        default:
+                            return false;
+                    }
                 }
             });
         }
@@ -465,6 +486,17 @@ final class WebViewManager {
         }
     }
 
+    @AnyThread
+    void handleData(@NonNull final String data) {
+        if (this.mHandler == null || this.mWebView == null || !this.mStarted) {
+            synchronized (this.mPendingLock) {
+                WebViewManager.mPendingData = data;
+            }
+        } else {
+            this.mHandler.obtainMessage(1, data).sendToTarget();
+        }
+    }
+
     @MainThread
     private boolean overrideUrl(@NonNull final WebView view, @NonNull final Uri url) {
         final String scheme = url.getScheme();
@@ -552,10 +584,16 @@ final class WebViewManager {
         assert this.mWebView != null : "mWebView is null";
         this.mStarted = true;
 
-        synchronized (this.mPendingEventsLock) {
+        synchronized (this.mPendingLock) {
             JSONObject event;
             while ((event = this.mPendingEvents.poll()) != null) {
                 this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'SUBMIT_EVENT', payload: " + event.toString() + " })", null);
+            }
+
+            final String data = WebViewManager.mPendingData;
+            if (data != null) {
+                WebViewManager.mPendingData = null;
+                this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'HANDLE_DATA', payload: " + data + " })", null);
             }
         }
     }
@@ -616,7 +654,7 @@ final class WebViewManager {
     @AnyThread
     void submitEvent(@NonNull final JSONObject event) {
         if (this.mHandler == null || this.mWebView == null || !this.mStarted) {
-            synchronized (this.mPendingEventsLock) {
+            synchronized (this.mPendingLock) {
                 if (this.mPendingEvents.size() == 1000) {
                     this.mPendingEvents.poll();
                 }

@@ -26,8 +26,8 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.android.support:cardview-v7:27.1.0'
-    implementation 'com.android.support:support-fragment:27.1.0'
+    implementation 'com.android.support:cardview-v7:27.1.1'
+    implementation 'com.android.support:support-fragment:27.1.1'
     implementation "com.google.android.gms:play-services-auth:${rootProject.ext.playServicesVersion}"
     implementation "com.google.android.gms:play-services-games:${rootProject.ext.playServicesVersion}"
 }

@@ -69,9 +69,14 @@ final class WebViewJavascriptInterface implements Callback {
     private static final int SHOW_BANNER = 1006;
 
     /**
+     * Identifies the "SHOW_PAGE" action type.
+     */
+    private static final int SHOW_PAGE = 1007;
+
+    /**
      * Identifies the "SHOW_SHARE_MENU" action type.
      */
-    private static final int SHOW_SHARE_MENU = 1007;
+    private static final int SHOW_SHARE_MENU = 1008;
 
     /**
      * The tag used to identify log messages.
@@ -161,6 +166,9 @@ final class WebViewJavascriptInterface implements Callback {
             case "SHOW_BANNER":
                 this.onShowBannerDispatched(action);
                 break;
+            case "SHOW_PAGE":
+                this.onShowPageDispatched();
+                break;
             case "SHOW_SHARE_MENU":
                 this.onShowShareMenuDispatched(action);
                 break;
@@ -197,6 +205,9 @@ final class WebViewJavascriptInterface implements Callback {
                 break;
             case SHOW_BANNER:
                 this.onShowBannerHandled(args);
+                break;
+            case SHOW_PAGE:
+                this.onShowPageHandled();
                 break;
             case SHOW_SHARE_MENU:
                 this.onShowShareMenuHandled(args);
@@ -248,9 +259,11 @@ final class WebViewJavascriptInterface implements Callback {
 
     @WorkerThread
     private void onLoggedInDispatched(@NonNull final JSONObject action) {
+        String notificationToken;
         String userId;
         try {
             final JSONObject payload = action.getJSONObject("payload");
+            notificationToken = payload.getString("notificationToken");
             userId = payload.getString("userId");
         } catch (JSONException ignored) {
             // TODO: Send an error to the JavaScript application.
@@ -262,12 +275,17 @@ final class WebViewJavascriptInterface implements Callback {
             return;
         }
 
-        Zapic.setPlayerId(userId);
+        if (notificationToken.equals("")) {
+            // TODO: Send an error to the JavaScript application.
+            return;
+        }
+
+        Zapic.setPlayer(new ZapicPlayer(userId, notificationToken));
     }
 
     @WorkerThread
     private void onLoggedOutDispatched() {
-        Zapic.setPlayerId(null);
+        Zapic.setPlayer(null);
     }
 
     @WorkerThread
@@ -355,6 +373,20 @@ final class WebViewJavascriptInterface implements Callback {
     @MainThread
     private void onShowBannerHandled(Map<String, Object> args) {
         NotificationUtilities.showBanner(this.mContext, (String) args.get("title"), (String) args.get("subtitle"), (Bitmap) args.get("icon"));
+    }
+
+    @WorkerThread
+    private void onShowPageDispatched() {
+        this.mHandler.obtainMessage(SHOW_PAGE).sendToTarget();
+    }
+
+    @MainThread
+    private void onShowPageHandled() {
+        // TODO: Refactor Zapic.createIntent to take a context as opposed to an activity.
+        final Intent intent = new Intent(this.mContext, ZapicActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+        intent.putExtra("page", "current");
+        this.mContext.startActivity(intent);
     }
 
     @WorkerThread

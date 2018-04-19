@@ -34,7 +34,7 @@ ext {
     sourceCompatibility = JavaVersion.VERSION_1_7
     targetCompatibility = JavaVersion.VERSION_1_7
 
-    playServicesVersion = '11.8.0'
+    playServicesVersion = '15.0.0'
 }
 
 task clean(type: Delete) {

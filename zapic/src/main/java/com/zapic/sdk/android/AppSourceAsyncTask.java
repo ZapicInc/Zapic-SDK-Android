@@ -66,6 +66,7 @@ final class AppSourceAsyncTask extends AsyncTask<Void, Integer, AppSource> imple
 
     @Nullable
     @Override
+    @SuppressWarnings("deprecation")
     @WorkerThread
     protected AppSource doInBackground(final Void... voids) {
         final AppSource cachedAppSource = AppSourceConfig.isCacheEnabled() ? this.getFromCache() : null;
