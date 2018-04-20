@@ -43,11 +43,20 @@ public final class ZapicAppFragment extends Fragment {
 
         assert this.mWebView == null : "mWebView is not null";
         this.mWebView = webViewManager.getWebView();
-        final FrameLayout.LayoutParams webViewLayoutParams = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
-        this.mWebView.setLayoutParams(webViewLayoutParams);
 
         final FragmentActivity activity = this.getActivity();
         assert activity != null : "activity is null";
+
+        final FrameLayout oldFrameLayout = (FrameLayout) this.mWebView.getParent();
+        if (oldFrameLayout != null) {
+            oldFrameLayout.removeView(this.mWebView);
+
+            final MutableContextWrapper webViewContext = (MutableContextWrapper) this.mWebView.getContext();
+            webViewContext.setBaseContext(activity.getApplicationContext());
+        }
+
+        final FrameLayout.LayoutParams webViewLayoutParams = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
+        this.mWebView.setLayoutParams(webViewLayoutParams);
 
         final MutableContextWrapper webViewContext = (MutableContextWrapper) this.mWebView.getContext();
         webViewContext.setBaseContext(activity);
