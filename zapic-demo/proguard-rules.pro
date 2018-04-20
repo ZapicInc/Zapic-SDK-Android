@@ -1,0 +1,2 @@
+-dontwarn com.android.installreferrer.api.**
+-dontwarn com.google.firebase.appindexing.**
