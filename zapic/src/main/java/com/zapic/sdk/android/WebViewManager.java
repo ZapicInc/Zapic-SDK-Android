@@ -31,6 +31,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.ref.WeakReference;
@@ -310,7 +311,17 @@ final class WebViewManager {
                                     WebViewManager.mPendingData = data;
                                 }
                             } else {
-                                WebViewManager.this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'HANDLE_DATA', payload: " + data + " })", null);
+                                String action;
+                                try {
+                                    JSONObject o = new JSONObject();
+                                    o.put("type", "HANDLE_DATA");
+                                    o.put("payload", data);
+                                    action = o.toString();
+                                } catch (JSONException ignored) {
+                                    action = "";
+                                }
+
+                                WebViewManager.this.mWebView.evaluateJavascript("window.zapic.dispatch(" + action + ")", null);
                             }
 
                             return true;
@@ -593,7 +604,18 @@ final class WebViewManager {
             final String data = WebViewManager.mPendingData;
             if (data != null) {
                 WebViewManager.mPendingData = null;
-                this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'HANDLE_DATA', payload: " + data + " })", null);
+
+                String action;
+                try {
+                    JSONObject o = new JSONObject();
+                    o.put("type", "HANDLE_DATA");
+                    o.put("payload", data);
+                    action = o.toString();
+                } catch (JSONException ignored) {
+                    action = "";
+                }
+
+                this.mWebView.evaluateJavascript("window.zapic.dispatch(" + action + ")", null);
             }
         }
     }
