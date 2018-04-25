@@ -29,14 +29,14 @@ public class MainApplication extends BranchApp {
                     public void notificationOpened(OSNotificationOpenResult result) {
                         JSONObject data = result.notification.payload.additionalData;
                         if (data != null) {
-                            Zapic.handleData(data);
+                            Zapic.handleData(MainApplication.this, data);
                         }
                     }
                 })
                 .init();
 
         // Initialize Zapic.
-        Zapic.start(this, new Zapic.AuthenticationHandler() {
+        Zapic.start(new Zapic.AuthenticationHandler() {
             @Override
             public void onLogin(@NonNull ZapicPlayer player) {
                 // Associate player with Branch session.

@@ -19,9 +19,9 @@ import org.json.JSONObject;
  * Provides static methods to manage and interact with Zapic.
  * <p>
  * It is the responsibility of the game's {@link Application} to call the
- * {@link #start(Application, AuthenticationHandler)} method during its {@code onCreate} lifecycle
- * method. The game may optionally register an authentication handler that is notified when a player
- * is logged in or out.
+ * {@link #start(AuthenticationHandler)} method during its {@code onCreate} lifecycle method. The
+ * game may optionally register an authentication handler that is notified when a player is logged
+ * in or out.
  * <p>
  * It is the responsibility of the game's activity (or game's activities if there are multiple) to
  * call the {@link #attachFragment(Activity)} method during its {@code onCreate} lifecycle method.
@@ -138,17 +138,51 @@ public final class Zapic {
     /**
      * Handles custom data provided by a push notification, deep link, etc..
      *
-     * @param data The custom data.
-     * @throws IllegalArgumentException If {@code data} is {@code null}.
+     * @param gameActivity The game's activity.
+     * @param data         The JSON-encoded object of gameplay event parameters.
+     * @throws IllegalArgumentException If {@code gameActivity} or {@code data} are {@code null}; if
+     *                                  {@code gameActivity} does not have a {@link ZapicFragment}
+     *                                  attached (see {@link #attachFragment(Activity)}; if
+     *                                  {@code data} is not a valid JSON object.
      */
     @AnyThread
-    public static void handleData(@Nullable final JSONObject data) {
+    public static void handleData(@Nullable final Activity gameActivity, @Nullable final JSONObject data) {
+        if (gameActivity == null) {
+            throw new IllegalArgumentException("gameActivity must not be null");
+        }
+
         if (data == null) {
             throw new IllegalArgumentException("data must not be null");
         }
 
         try {
-            WebViewManager.getInstance().handleData(data.getString("zapic"));
+            String value = data.getString("zapic");
+            WebViewManager.getInstance().handleData(value);
+        } catch (JSONException ignored) {
+        }
+    }
+
+    /**
+     * Handles custom data provided by a push notification, deep link, etc..
+     *
+     * @param gameApplication The game's application.
+     * @param data            The JSON-encoded object of gameplay event parameters.
+     * @throws IllegalArgumentException If {@code gameApplication} or {@code data} are {@code null};
+     *                                  if {@code data} is not a valid JSON object.
+     */
+    @AnyThread
+    public static void handleData(@Nullable final Application gameApplication, @Nullable final JSONObject data) {
+        if (gameApplication == null) {
+            throw new IllegalArgumentException("gameApplication must not be null");
+        }
+
+        if (data == null) {
+            throw new IllegalArgumentException("data must not be null");
+        }
+
+        try {
+            String value = data.getString("zapic");
+            WebViewManager.getInstance().handleData(value);
         } catch (JSONException ignored) {
         }
     }
@@ -234,18 +268,13 @@ public final class Zapic {
      * <p>
      * This must only be called once for the lifetime of the application.
      *
-     * @param application           The application.
      * @param authenticationHandler The authentication handler.
      * @throws IllegalArgumentException If {@code application} is {@code null}.
      * @since 1.0.2
      */
     @AnyThread
     @SuppressWarnings("unused")
-    public static void start(@Nullable Application application, @Nullable Zapic.AuthenticationHandler authenticationHandler) {
-        if (application == null) {
-            throw new IllegalArgumentException("application must not be null");
-        }
-
+    public static void start(@Nullable Zapic.AuthenticationHandler authenticationHandler) {
         Zapic.authenticationHandler = authenticationHandler;
     }
 
