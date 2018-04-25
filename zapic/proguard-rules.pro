@@ -3,7 +3,10 @@
   public *;
 }
 
-# Keep Java API
+-keep interface com.zapic.sdk.android.Zapic$AuthenticationHandler {
+  public *;
+}
+
 -keep class com.zapic.sdk.android.ZapicPlayer {
   public *;
 }

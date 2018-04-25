@@ -205,7 +205,7 @@ public class MainActivity extends Activity implements
             @Override
             public void onInitFinished(JSONObject referringParams, BranchError error) {
                 if (referringParams != null) {
-                    Zapic.handleData(referringParams);
+                    Zapic.handleData(MainActivity.this, referringParams);
                 } else {
                     Log.e(TAG, error.getMessage());
                 }
