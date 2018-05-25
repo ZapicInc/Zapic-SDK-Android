@@ -1,6 +1,6 @@
 # Zapic SDK for Android
 
-[![CodeFactor](https://www.codefactor.io/repository/github/zapicinc/zapic-sdk-android/badge)](https://www.codefactor.io/repository/github/zapicinc/zapic-sdk-android) [![MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Chat on Discord](https://img.shields.io/discord/430949891104309249.svg?logo=discord)](https://discord.gg/uC3k5D7)
+[![Download](https://api.bintray.com/packages/zapic/maven/zapic-sdk-android/images/download.svg)](https://bintray.com/zapic/maven/zapic-sdk-android/_latestVersion) [![CodeFactor](https://www.codefactor.io/repository/github/zapicinc/zapic-sdk-android/badge)](https://www.codefactor.io/repository/github/zapicinc/zapic-sdk-android) [![MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Chat on Discord](https://img.shields.io/discord/430949891104309249.svg?logo=discord)](https://discord.gg/uC3k5D7)
 
 Copyright (c) 2017-2018 Zapic, Inc.
 

@@ -1,5 +1,11 @@
 apply plugin: 'com.android.library'
 
+ext {
+    PUBLISH_GROUP_ID = 'com.zapic.sdk.android'
+    PUBLISH_ARTIFACT_ID = 'zapic-sdk-android'
+    PUBLISH_VERSION = '1.0.0'
+}
+
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -27,7 +33,9 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:cardview-v7:27.1.1'
-    implementation 'com.android.support:support-fragment:27.1.1'
+    implementation 'com.android.support:support-v4:27.1.1'
     implementation "com.google.android.gms:play-services-auth:${rootProject.ext.playServicesVersion}"
     implementation "com.google.android.gms:play-services-games:${rootProject.ext.playServicesVersion}"
 }
+
+apply from: './release.gradle'
