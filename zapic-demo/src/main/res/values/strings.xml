@@ -3,13 +3,6 @@
     <string name="challenges_button">Challenges</string>
     <string name="zapic_button">Zapic</string>
 
-    <string name="pref_header_zapic">Zapic</string>
-    <string name="pref_title_zapic_url">Server URL</string>
-    <string name="pref_default_zapic_url">https://app.zapic.net</string>
-    <string name="pref_title_zapic_cache">Enable Cache</string>
-    <string name="pref_summary_zapic_cache">Load HTML from disk cache</string>
-    <string name="pref_default_zapic_cache">true</string>
-
     <string name="play_games_app_id">853726039702</string>
     <string name="play_games_web_client_id">853726039702-d1er1k1d6bvjg6lf9fg5rnja64scrk9s.apps.googleusercontent.com</string>
 </resources>
