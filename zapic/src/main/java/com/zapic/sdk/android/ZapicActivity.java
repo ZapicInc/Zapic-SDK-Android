@@ -584,10 +584,11 @@ public final class ZapicActivity extends Activity {
 
     @MainThread
     void showWebPage(@NonNull final WebView webView) {
-        if (mWebView != webView) {
-            hideWebPage();
+        if (mWebView == webView) {
+            return;
         }
 
+        hideWebPage();
         mWebView = webView;
 
         final MutableContextWrapper webViewContext = (MutableContextWrapper) webView.getContext();

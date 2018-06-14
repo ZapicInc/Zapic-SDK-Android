@@ -4,12 +4,10 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.graphics.PointF;
 import android.hardware.SensorManager;
-import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -21,12 +19,10 @@ import com.zapic.sdk.android.Zapic;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-//import io.branch.referral.Branch;
-//import io.branch.referral.BranchError;
+import io.branch.referral.Branch;
+import io.branch.referral.BranchError;
 
-public class MainActivity extends Activity implements
-        ShakeDetector.Listener,
-        SharedPreferences.OnSharedPreferenceChangeListener {
+public class MainActivity extends Activity implements ShakeDetector.Listener {
     private static final String TAG = "MainActivity";
 
     private static final float TOUCH_TOLERANCE = 4f;
@@ -36,8 +32,6 @@ public class MainActivity extends Activity implements
     private SensorManager sensorManager;
 
     private ShakeDetector shakeDetector;
-
-    private SharedPreferences sharedPreferences;
 
     private double totalTouchDistance;
 
@@ -61,27 +55,12 @@ public class MainActivity extends Activity implements
 
     @Override
     public void hearShake() {
-        Intent intent = new Intent(this, SettingsActivity.class);
-        startActivity(intent);
     }
 
     @Override
     @SuppressWarnings("deprecation")
     protected void onCreate(final Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
-
-        // Configure Zapic. Note: This is only for debugging! Do not use this in production apps!
-        this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-
-//        boolean cachePref = this.sharedPreferences.getBoolean(SettingsActivity.KEY_CACHE, true);
-//        if (cachePref) {
-//            AppSourceConfig.enableCache();
-//        } else {
-//            AppSourceConfig.disableCache();
-//        }
-
-//        String urlPref = this.sharedPreferences.getString(SettingsActivity.KEY_URL, "https://app.zapic.net");
-//        AppSourceConfig.setUrl(urlPref);
 
         // Hide the system status and navigation bars.
         this.enableImmersiveFullScreenMode();
@@ -150,11 +129,6 @@ public class MainActivity extends Activity implements
             this.shakeDetector.stop();
         }
 
-        // Disable preference change listener.
-        if (this.sharedPreferences != null) {
-            this.sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
-        }
-
         super.onPause();
     }
 
@@ -178,30 +152,7 @@ public class MainActivity extends Activity implements
             this.shakeDetector.start(this.sensorManager);
         }
 
-        // Enable preference change listener.
-        if (this.sharedPreferences != null) {
-            this.sharedPreferences.registerOnSharedPreferenceChangeListener(this);
-        }
-
         super.onResume();
-    }
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-//        if (key.equals(SettingsActivity.KEY_CACHE)) {
-//            boolean cachePref = sharedPreferences.getBoolean(SettingsActivity.KEY_CACHE, true);
-//            if (cachePref) {
-//                AppSourceConfig.enableCache();
-//            } else {
-//                AppSourceConfig.disableCache();
-//            }
-//        }
-//
-//        if (key.equals(SettingsActivity.KEY_URL)) {
-//            String urlPref = sharedPreferences.getString(SettingsActivity.KEY_URL, "https://app.zapic.net");
-//            AppSourceConfig.setUrl(urlPref);
-//        }
     }
 
     @Override
@@ -210,17 +161,17 @@ public class MainActivity extends Activity implements
 
         super.onStart();
 
-//        Branch branch = Branch.getInstance();
-//        branch.initSession(new Branch.BranchReferralInitListener() {
-//            @Override
-//            public void onInitFinished(JSONObject referringParams, BranchError error) {
-//                if (referringParams != null) {
-//                    Zapic.handleInteractionEvent(referringParams);
-//                } else {
-//                    Log.e(TAG, error.getMessage());
-//                }
-//            }
-//        }, this.getIntent().getData(), this);
+        Branch branch = Branch.getInstance();
+        branch.initSession(new Branch.BranchReferralInitListener() {
+            @Override
+            public void onInitFinished(JSONObject referringParams, BranchError error) {
+                if (referringParams != null) {
+                    Zapic.handleInteraction(referringParams);
+                } else {
+                    Log.e(TAG, error.getMessage());
+                }
+            }
+        }, this.getIntent().getData(), this);
     }
 
     @Override

@@ -228,7 +228,9 @@ public final class Zapic {
 
         try {
             final JSONObject parsedParameters = new JSONObject(parameters.toString());
-            handleEvent("interaction", parsedParameters);
+            if (parsedParameters.has("zapic") && !parsedParameters.isNull("zapic")) {
+                handleEvent("interaction", parsedParameters);
+            }
         } catch (JSONException e) {
             throw new IllegalArgumentException("parameters must be a valid JSON object");
         }
@@ -259,7 +261,9 @@ public final class Zapic {
 
         try {
             final JSONObject parsedParameters = new JSONObject(parameters);
-            handleEvent("interaction", parsedParameters);
+            if (parsedParameters.has("zapic") && !parsedParameters.isNull("zapic")) {
+                handleEvent("interaction", parsedParameters);
+            }
         } catch (JSONException e) {
             throw new IllegalArgumentException("parameters must be a valid JSON object");
         }

@@ -103,9 +103,18 @@ final class SessionManager {
     private void dispatchSubmitEvent(@NonNull final JSONObject message) {
         if (mWebView != null) {
             try {
-                dispatch(new JSONObject()
-                        .put("type", "SUBMIT_EVENT")
-                        .put("payload", message));
+                if ("interaction".equals(message.getString("type"))) {
+                    final String payload = message.getJSONObject("params").getString("zapic");
+                    dispatch(new JSONObject()
+                            .put("type", "SUBMIT_EVENT")
+                            .put("payload", new JSONObject()
+                                    .put("type", "interaction")
+                                    .put("payload", payload)));
+                } else {
+                    dispatch(new JSONObject()
+                            .put("type", "SUBMIT_EVENT")
+                            .put("payload", message));
+                }
             } catch (JSONException ignored) {
             }
         }
