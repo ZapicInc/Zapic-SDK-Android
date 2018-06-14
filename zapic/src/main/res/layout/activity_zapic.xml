@@ -4,5 +4,69 @@
     android:id="@+id/activity_zapic_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/white"
-    tools:context=".ZapicActivity" />
+    android:background="#CC000000"
+    tools:context=".ZapicActivity">
+
+    <ProgressBar
+        android:id="@+id/activity_zapic_progress_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:indeterminate="true"
+        android:theme="@style/Zapic.Theme" />
+
+    <ImageButton
+        android:id="@+id/activity_zapic_close"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="Close"
+        android:onClick="onCloseClick"
+        android:src="@drawable/zapic_close_24dp"
+        android:visibility="gone" />
+
+    <RelativeLayout
+        android:id="@+id/activity_zapic_retry_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="24dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/activity_zapic_retry_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="false"
+            android:layout_alignParentStart="false"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:text="Could not connect to Zapic."
+            android:textColor="@android:color/white"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/activity_zapic_retry_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/activity_zapic_retry_title"
+            android:layout_centerInParent="true"
+            android:layout_marginTop="8dp"
+            android:text="Please check your Internet connection and try again."
+            android:textColor="@android:color/white"
+            android:textSize="12sp" />
+
+        <Button
+            android:id="@+id/activity_zapic_retry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/activity_zapic_retry_text"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="8dp"
+            android:onClick="onRetryClick"
+            android:text="Retry" />
+    </RelativeLayout>
+</FrameLayout>

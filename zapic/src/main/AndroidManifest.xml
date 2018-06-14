@@ -2,15 +2,36 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.zapic.sdk.android">
 
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.flash"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.front"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.wifi"
+        android:required="false" />
+
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
 
     <application>
         <activity
             android:name=".ZapicActivity"
             android:configChanges="orientation|screenSize"
-            android:theme="@style/ZapicActivityTheme" />
+            android:hardwareAccelerated="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Zapic.Theme.Translucent" />
 
         <meta-data
             android:name="android.webkit.WebView.EnableSafeBrowsing"
@@ -26,7 +47,7 @@
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/zapic_provider_paths" />
+                android:resource="@xml/zapic_share_path" />
         </provider>
     </application>
 </manifest>

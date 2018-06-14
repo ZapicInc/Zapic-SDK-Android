@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="ZapicActivityTheme" parent="android:Theme.Material.Light.NoActionBar.Fullscreen">
-        <item name="android:colorAccent">@color/zapic_primary</item>
-        <item name="android:colorPrimary">@color/zapic_green</item>
+
+    <style name="Zapic.Theme" parent="android:Theme.Material.Light.NoActionBar.Fullscreen">
+        <item name="android:colorAccent">#00B1CA</item>
+        <item name="android:colorPrimary">#00DEAE</item>
+    </style>
+
+    <style name="Zapic.Theme.Translucent" parent="Zapic.Theme">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
     </style>
 </resources>
