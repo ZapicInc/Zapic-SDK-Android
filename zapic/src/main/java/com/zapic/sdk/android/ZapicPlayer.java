@@ -1,5 +1,6 @@
 package com.zapic.sdk.android;
 
+import android.support.annotation.AnyThread;
 import android.support.annotation.CheckResult;
 import android.support.annotation.NonNull;
 
@@ -14,20 +15,24 @@ public final class ZapicPlayer {
      * The notification token.
      */
     @NonNull
-    private final String notificationToken;
+    private final String mNotificationToken;
 
     /**
      * The player identifier.
      */
     @NonNull
-    private final String playerId;
+    private final String mPlayerId;
 
     /**
      * Creates a new {@link ZapicPlayer} instance.
+     *
+     * @param playerId          The player identifier.
+     * @param notificationToken The notification token.
      */
-    ZapicPlayer(@NonNull String playerId, @NonNull String notificationToken) {
-        this.playerId = playerId;
-        this.notificationToken = notificationToken;
+    @AnyThread
+    ZapicPlayer(@NonNull final String playerId, @NonNull final String notificationToken) {
+        mNotificationToken = notificationToken;
+        mPlayerId = playerId;
     }
 
     /**
@@ -35,11 +40,12 @@ public final class ZapicPlayer {
      *
      * @return The notification token.
      */
+    @AnyThread
     @CheckResult
     @NonNull
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "WeakerAccess"})
     public String getNotificationToken() {
-        return notificationToken;
+        return mNotificationToken;
     }
 
     /**
@@ -47,10 +53,11 @@ public final class ZapicPlayer {
      *
      * @return The player identifier.
      */
+    @AnyThread
     @CheckResult
     @NonNull
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "WeakerAccess"})
     public String getPlayerId() {
-        return playerId;
+        return mPlayerId;
     }
 }

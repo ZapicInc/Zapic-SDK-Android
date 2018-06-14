@@ -3,7 +3,7 @@
   public *;
 }
 
--keep interface com.zapic.sdk.android.Zapic$AuthenticationHandler {
+-keep class com.zapic.sdk.android.ZapicPages {
   public *;
 }
 
@@ -11,7 +11,11 @@
   public *;
 }
 
+-keep interface com.zapic.sdk.android.Zapic$AuthenticationHandler {
+  public *;
+}
+
 # Keep JavaScript API
--keepclassmembers class com.zapic.sdk.android.WebViewJavascriptInterface {
+-keepclassmembers class com.zapic.sdk.android.WebViewJavascriptBridge {
   public *;
 }

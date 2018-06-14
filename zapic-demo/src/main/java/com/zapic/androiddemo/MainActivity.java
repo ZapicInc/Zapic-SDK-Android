@@ -16,13 +16,13 @@ import android.view.View;
 import android.widget.RelativeLayout;
 
 import com.squareup.seismic.ShakeDetector;
-import com.zapic.sdk.android.AppSourceConfig;
 import com.zapic.sdk.android.Zapic;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
-import io.branch.referral.Branch;
-import io.branch.referral.BranchError;
+//import io.branch.referral.Branch;
+//import io.branch.referral.BranchError;
 
 public class MainActivity extends Activity implements
         ShakeDetector.Listener,
@@ -68,18 +68,20 @@ public class MainActivity extends Activity implements
     @Override
     @SuppressWarnings("deprecation")
     protected void onCreate(final Bundle savedInstanceState) {
+        Log.d(TAG, "onCreate");
+
         // Configure Zapic. Note: This is only for debugging! Do not use this in production apps!
         this.sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
 
-        boolean cachePref = this.sharedPreferences.getBoolean(SettingsActivity.KEY_CACHE, true);
-        if (cachePref) {
-            AppSourceConfig.enableCache();
-        } else {
-            AppSourceConfig.disableCache();
-        }
+//        boolean cachePref = this.sharedPreferences.getBoolean(SettingsActivity.KEY_CACHE, true);
+//        if (cachePref) {
+//            AppSourceConfig.enableCache();
+//        } else {
+//            AppSourceConfig.disableCache();
+//        }
 
-        String urlPref = this.sharedPreferences.getString(SettingsActivity.KEY_URL, "https://app.zapic.net");
-        AppSourceConfig.setUrl(urlPref);
+//        String urlPref = this.sharedPreferences.getString(SettingsActivity.KEY_URL, "https://app.zapic.net");
+//        AppSourceConfig.setUrl(urlPref);
 
         // Hide the system status and navigation bars.
         this.enableImmersiveFullScreenMode();
@@ -100,7 +102,7 @@ public class MainActivity extends Activity implements
         zapicButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Zapic.show(MainActivity.this);
+                Zapic.showDefaultPage(MainActivity.this);
             }
         });
 
@@ -108,7 +110,7 @@ public class MainActivity extends Activity implements
         challengesButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Zapic.show(MainActivity.this, "challenges");
+                Zapic.showPage(MainActivity.this, "challenges");
             }
         });
 
@@ -132,6 +134,8 @@ public class MainActivity extends Activity implements
 
     @Override
     protected void onNewIntent(Intent intent) {
+        Log.d(TAG, "onNewIntent");
+
         super.onNewIntent(intent);
 
         this.setIntent(intent);
@@ -139,6 +143,8 @@ public class MainActivity extends Activity implements
 
     @Override
     protected void onPause() {
+        Log.d(TAG, "onPause");
+
         // Disable shake detector.
         if (this.shakeDetector != null) {
             this.shakeDetector.stop();
@@ -154,6 +160,8 @@ public class MainActivity extends Activity implements
 
     @Override
     protected void onResume() {
+        Log.d(TAG, "onResume");
+
         // Hide the system status and navigation bars.
         this.enableImmersiveFullScreenMode();
         this.getWindow().getDecorView().setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
@@ -181,36 +189,45 @@ public class MainActivity extends Activity implements
     @Override
     @SuppressWarnings("deprecation")
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (key.equals(SettingsActivity.KEY_CACHE)) {
-            boolean cachePref = sharedPreferences.getBoolean(SettingsActivity.KEY_CACHE, true);
-            if (cachePref) {
-                AppSourceConfig.enableCache();
-            } else {
-                AppSourceConfig.disableCache();
-            }
-        }
-
-        if (key.equals(SettingsActivity.KEY_URL)) {
-            String urlPref = sharedPreferences.getString(SettingsActivity.KEY_URL, "https://app.zapic.net");
-            AppSourceConfig.setUrl(urlPref);
-        }
+//        if (key.equals(SettingsActivity.KEY_CACHE)) {
+//            boolean cachePref = sharedPreferences.getBoolean(SettingsActivity.KEY_CACHE, true);
+//            if (cachePref) {
+//                AppSourceConfig.enableCache();
+//            } else {
+//                AppSourceConfig.disableCache();
+//            }
+//        }
+//
+//        if (key.equals(SettingsActivity.KEY_URL)) {
+//            String urlPref = sharedPreferences.getString(SettingsActivity.KEY_URL, "https://app.zapic.net");
+//            AppSourceConfig.setUrl(urlPref);
+//        }
     }
 
     @Override
     protected void onStart() {
+        Log.d(TAG, "onStart");
+
         super.onStart();
 
-        Branch branch = Branch.getInstance();
-        branch.initSession(new Branch.BranchReferralInitListener() {
-            @Override
-            public void onInitFinished(JSONObject referringParams, BranchError error) {
-                if (referringParams != null) {
-                    Zapic.handleData(MainActivity.this, referringParams);
-                } else {
-                    Log.e(TAG, error.getMessage());
-                }
-            }
-        }, this.getIntent().getData(), this);
+//        Branch branch = Branch.getInstance();
+//        branch.initSession(new Branch.BranchReferralInitListener() {
+//            @Override
+//            public void onInitFinished(JSONObject referringParams, BranchError error) {
+//                if (referringParams != null) {
+//                    Zapic.handleInteractionEvent(referringParams);
+//                } else {
+//                    Log.e(TAG, error.getMessage());
+//                }
+//            }
+//        }, this.getIntent().getData(), this);
+    }
+
+    @Override
+    protected void onStop() {
+        Log.d(TAG, "onStop");
+
+        super.onStop();
     }
 
     private boolean onTouch(@NonNull final MotionEvent motionEvent) {
@@ -239,9 +256,12 @@ public class MainActivity extends Activity implements
                     float dy = Math.abs(this.lastTouchPoint.y - motionEvent.getY());
                     long distance = Math.round(this.totalTouchDistance + Math.sqrt((dx * dx) + (dy * dy)));
 
-                    // Submit gameplay event to Zapic.
-                    String parameters = "{\"DISTANCE\":\"" + String.valueOf(distance) + "\"}";
-                    Zapic.submitEvent(this, parameters);
+                    // Send gameplay event to Zapic.
+                    try {
+                        Zapic.submitEvent(new JSONObject().put("DISTANCE", distance));
+                    } catch (JSONException e) {
+                        Log.e(TAG, "Failed to create gameplay event", e);
+                    }
 
                     this.lastTouchPoint = null;
                     this.totalTouchDistance = 0f;

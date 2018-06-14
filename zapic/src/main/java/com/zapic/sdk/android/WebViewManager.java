@@ -5,28 +5,30 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.MutableContextWrapper;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.net.http.SslError;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Handler;
-import android.os.Handler.Callback;
 import android.os.Message;
-import android.support.annotation.AnyThread;
+import android.support.annotation.CheckResult;
 import android.support.annotation.MainThread;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
+import android.support.annotation.WorkerThread;
+import android.support.v4.content.FileProvider;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.webkit.RenderProcessGoneDetail;
-import android.webkit.SslErrorHandler;
+import android.webkit.SafeBrowsingResponse;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
-import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -34,11 +36,73 @@ import android.webkit.WebViewClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.LinkedList;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
+import javax.net.ssl.HttpsURLConnection;
+
+/**
+ * Manages the {@link WebView} instance.
+ * <p>
+ * This is responsible for coordinating the lifecycle of the Zapic web page and the {@link WebView}
+ * instance. This downloads and caches the Zapic web page, creates the {@link WebView} instance,
+ * loads the Zapic web page into the {@link WebView} instance, and dispatches messages between the
+ * native and JavaScript contexts. This also restarts the Zapic web page when a crash is detected.
+ *
+ * @author Kyle Dodson
+ * @since 1.2.0
+ */
 final class WebViewManager {
+    /**
+     * Identifies the "APP_STARTED" action type.
+     */
+    private static final int ACTION_TYPE_APP_STARTED = 1000;
+
+    /**
+     * Identifies the "CLOSE_PAGE_REQUESTED" action type.
+     */
+    private static final int ACTION_TYPE_CLOSE_PAGE_REQUESTED = 1001;
+
+    /**
+     * Identifies the "LOGGED_IN" action type.
+     */
+    private static final int ACTION_TYPE_LOGGED_IN = 1002;
+
+    /**
+     * Identifies the "LOGGED_OUT" action type.
+     */
+    private static final int ACTION_TYPE_LOGGED_OUT = 1003;
+
+    /**
+     * Identifies the "PAGE_READY" action type.
+     */
+    private static final int ACTION_TYPE_PAGE_READY = 1004;
+
+    /**
+     * Identifies the "SHOW_BANNER" action type.
+     */
+    private static final int ACTION_TYPE_SHOW_BANNER = 1005;
+
+    /**
+     * Identifies the "SHOW_PAGE" action type.
+     */
+    private static final int ACTION_TYPE_SHOW_PAGE = 1006;
+
+    /**
+     * Identifies the "SHOW_SHARE_MENU" action type.
+     */
+    private static final int ACTION_TYPE_SHOW_SHARE_MENU = 1007;
+
     /**
      * The tag used to identify log messages.
      */
@@ -46,654 +110,810 @@ final class WebViewManager {
     private static final String TAG = "WebViewManager";
 
     /**
-     * A weak reference to the {@link WebViewManager} instance.
-     * <p>
-     * A strong reference to the {@link WebViewManager} instance is kept by {@link ZapicActivity}
-     * and {@link ZapicFragment}.
+     * The URL of the Zapic web page with a trailing slash.
      */
     @NonNull
-    private static WeakReference<WebViewManager> INSTANCE = new WeakReference<>(null);
+    private static final String URL_WITH_SLASH = "https://app.zapic.net/";
 
     /**
-     * The JavaScript variable name of the {@link WebViewJavascriptInterface} instance.
+     * The variable name of the {@link WebViewJavascriptBridge} instance in the JavaScript context.
      */
     @NonNull
     private static final String VARIABLE_NAME = "androidWebView";
 
-    @Nullable
-    private static String mPendingData = null;
-
-    @AnyThread
-    static WebViewManager getInstance() {
-        WebViewManager instance = WebViewManager.INSTANCE.get();
-        if (instance == null) {
-            synchronized (WebViewManager.class) {
-                instance = WebViewManager.INSTANCE.get();
-                if (instance == null) {
-                    instance = new WebViewManager();
-                    WebViewManager.INSTANCE = new WeakReference<>(instance);
-                }
-            }
-        }
-
-        return instance;
-    }
-
     /**
-     * The {@link ZapicActivity} instance.
-     */
-    @Nullable
-    private ZapicActivity mActivity;
-
-    @Nullable
-    private AsyncTask mAsyncTask;
-
-    /**
-     * The list of {@link ZapicFragment} instances.
+     * The global application context.
      */
     @NonNull
-    private final ArrayList<ZapicFragment> mFragments;
+    private final Context mApplicationContext;
 
     /**
-     * The handler used to dispatch messages to the main thread.
+     * The message handler used to invoke methods on the UI thread.
+     */
+    @NonNull
+    private final Handler mHandler;
+
+    /**
+     * The {@link SessionManager} instance.
+     */
+    @NonNull
+    private final SessionManager mSessionManager;
+
+    /**
+     * The {@link ViewManager} instance.
+     */
+    @NonNull
+    private final ViewManager mViewManager;
+
+    /**
+     * The {@link WebViewJavascriptBridge} instance.
+     */
+    @NonNull
+    private final WebViewJavascriptBridge mWebViewJavascriptBridge;
+
+    /**
+     * A value indicating whether Safe Browsing has been started.
+     * <p>
+     * This is {@code null} before the first attempt to start Safe Browsing. This is {@code true} if
+     * Safe Browsing has successfully been started. This is {@code false} if Safe Browsing could not
+     * be started.
      */
     @Nullable
-    private Handler mHandler;
+    private Boolean mSafeBrowsingStarted;
 
+    /**
+     * The Zapic web page.
+     */
     @Nullable
-    private ValueCallback<Uri[]> mImageUploadCallback;
+    private WebPage mWebPage;
 
-    private boolean mLoaded;
+    /**
+     * The asynchronous task used to download and cache the Zapic web page or to indicate a timeout
+     * when starting the Zapic web page.
+     */
+    @Nullable
+    private AsyncTask mWebPageTask;
 
-    @NonNull
-    private final LinkedList<JSONObject> mPendingEvents;
-
-    @NonNull
-    private final Object mPendingLock;
-
-    private boolean mStarted;
-
+    /**
+     * The {@link WebView} instance.
+     */
     @Nullable
     private WebView mWebView;
 
-    @AnyThread
-    private WebViewManager() {
-        this.mActivity = null;
-        this.mAsyncTask = null;
-        this.mFragments = new ArrayList<>();
-        this.mHandler = null;
-        this.mImageUploadCallback = null;
-        this.mLoaded = false;
-        this.mPendingEvents = new LinkedList<>();
-        this.mPendingLock = new Object();
-        this.mStarted = false;
-        this.mWebView = null;
-    }
-
+    /**
+     * Creates a new {@link WebViewManager} instance.
+     *
+     * @param context        Any context object (e.g. the global {@link android.app.Application} or
+     *                       an {@link android.app.Activity}).
+     * @param sessionManager The {@link SessionManager} instance.
+     * @param viewManager    The {@link ViewManager} instance.
+     */
     @MainThread
-    void cancelImageUpload() {
-        if (this.mImageUploadCallback != null) {
-            this.mImageUploadCallback.onReceiveValue(null);
-            this.mImageUploadCallback = null;
-        }
-    }
-
-    @MainThread
-    void cancelLoadApp() {
-        this.showOfflineFragment();
-    }
-
-    @MainThread
-    @SuppressLint("SetJavaScriptEnabled")
-    private void createWebView(@NonNull final Context context) {
-        if (BuildConfig.DEBUG) {
-            // This enables WebView debugging for all WebViews in the current process. Changes to
-            // this value are accepted only before the WebView process is created.
-            WebView.setWebContentsDebuggingEnabled(true);
-        }
-
-        this.mWebView = new WebView(new MutableContextWrapper(context.getApplicationContext()));
-        this.mWebView.addJavascriptInterface(new WebViewJavascriptInterface(context), VARIABLE_NAME);
-        this.mWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            this.mWebView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_BOUND, true);
-        }
-
-        WebSettings webSettings = this.mWebView.getSettings();
-        webSettings.setDomStorageEnabled(true);
-        webSettings.setJavaScriptEnabled(true);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        }
-
-// These were from the old project:
-//        webSettings.setAllowContentAccess(false);
-//        webSettings.setAllowFileAccess(false);
-//        webSettings.setAllowFileAccessFromFileURLs(false);
-//        webSettings.setAllowUniversalAccessFromFileURLs(false);
-//        webSettings.setGeolocationEnabled(false);
-//        webSettings.setSaveFormData(false);
-//        webSettings.setSupportZoom(false);
-
-// These are in the Android-SmartWebView:
-//        webSettings.setSaveFormData(ASWP_SFORM);
-//        webSettings.setSupportZoom(ASWP_ZOOM);
-//        webSettings.setGeolocationEnabled(ASWP_LOCATION);
-//        webSettings.setAllowFileAccess(true);
-//        webSettings.setAllowFileAccessFromFileURLs(true);
-//        webSettings.setAllowUniversalAccessFromFileURLs(true);
-//        webSettings.setUseWideViewPort(true);
-//        webSettings.setDomStorageEnabled(true);
-//        webSettings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.NARROW_COLUMNS);
-
-        this.mWebView.setWebChromeClient(new WebChromeClient() {
+    WebViewManager(@NonNull final Context context, @NonNull final SessionManager sessionManager, @NonNull final ViewManager viewManager) {
+        mApplicationContext = context.getApplicationContext();
+        mHandler = new Handler(mApplicationContext.getMainLooper(), new Handler.Callback() {
             @Override
-            @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-            public boolean onShowFileChooser(@NonNull final WebView webView, @NonNull final ValueCallback<Uri[]> filePathCallback, @NonNull final FileChooserParams fileChooserParams) {
-                if (WebViewManager.this.mActivity == null) {
+            @SuppressWarnings("unchecked")
+            public boolean handleMessage(@Nullable final Message msg) {
+                if (msg == null) {
                     return false;
                 }
 
-                String[] acceptTypes = fileChooserParams.getAcceptTypes();
-                if (acceptTypes == null || acceptTypes.length != 1 || !acceptTypes[0].equalsIgnoreCase("image/*") || fileChooserParams.getMode() != FileChooserParams.MODE_OPEN) {
-                    return false;
-                }
-
-                WebViewManager.this.mImageUploadCallback = filePathCallback;
-                WebViewManager.this.mActivity.showImagePrompt();
-                return true;
-            }
-        });
-
-        this.mWebView.setWebViewClient(new WebViewClient() {
-            @Override
-            @RequiresApi(Build.VERSION_CODES.M)
-            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                // TODO: Show an error to the user.
-            }
-
-            @Override
-            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                // TODO: Show an error to the user.
-            }
-
-            @Override
-            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-                // TODO: Show an error to the user.
-            }
-
-            @Override
-            @RequiresApi(Build.VERSION_CODES.O)
-            public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
-                if (WebViewManager.this.mWebView != view) {
-                    return false;
-                }
-
-                if (BuildConfig.DEBUG) {
-                    final boolean crashed = detail.didCrash();
-                    if (crashed) {
-                        Log.e(TAG, "The WebView has crashed");
-                    } else {
-                        Log.e(TAG, "The WebView has been stopped to reclaim memory");
-                    }
-                }
-
-                if (WebViewManager.this.mActivity != null) {
-                    WebViewManager.this.finishActivity();
-                }
-
-                WebViewManager.this.mImageUploadCallback = null;
-
-                if (WebViewManager.this.mAsyncTask != null) {
-                    WebViewManager.this.mAsyncTask.cancel(true);
-                    WebViewManager.this.mAsyncTask = null;
-                }
-
-                if (WebViewManager.this.mWebView != null) {
-                    WebViewManager.this.mWebView.destroy();
-                    WebViewManager.this.mWebView = null;
-                    WebViewManager.this.mLoaded = false;
-                    WebViewManager.this.mStarted = false;
+                switch (msg.what) {
+                    case ACTION_TYPE_APP_STARTED:
+                        onAppStartedHandled();
+                        break;
+                    case ACTION_TYPE_CLOSE_PAGE_REQUESTED:
+                        onClosePageRequestedHandled();
+                        break;
+                    case ACTION_TYPE_LOGGED_IN:
+                        onLoggedInHandled((Map<String, Object>) msg.obj);
+                        break;
+                    case ACTION_TYPE_LOGGED_OUT:
+                        onLoggedOutHandled();
+                        break;
+                    case ACTION_TYPE_PAGE_READY:
+                        onPageReadyHandled();
+                        break;
+                    case ACTION_TYPE_SHOW_BANNER:
+                        onShowBannerHandled((Map<String, Object>) msg.obj);
+                        break;
+                    case ACTION_TYPE_SHOW_PAGE:
+                        onShowPageHandled();
+                        break;
+                    case ACTION_TYPE_SHOW_SHARE_MENU:
+                        onShowShareMenuHandled((Map<String, Object>) msg.obj);
+                    default:
+                        break;
                 }
 
                 return true;
             }
-
+        });
+        mSafeBrowsingStarted = null;
+        mSessionManager = sessionManager;
+        mViewManager = viewManager;
+        mWebPage = null;
+        mWebPageTask = null;
+        mWebView = null;
+        mWebViewJavascriptBridge = new WebViewJavascriptBridge(new ValueCallback<String>() {
             @Override
-            @RequiresApi(Build.VERSION_CODES.N)
-            public boolean shouldOverrideUrlLoading(@Nullable final WebView view, @Nullable final WebResourceRequest request) {
-                if (view == null || request == null) {
-                    return false;
+            @WorkerThread
+            public void onReceiveValue(@Nullable final String value) {
+                if (value != null) {
+                    onDispatch(value);
                 }
-
-                Uri url = request.getUrl();
-                return url != null && WebViewManager.this.overrideUrl(view, request.getUrl());
-            }
-
-            @Override
-            public boolean shouldOverrideUrlLoading(@Nullable final WebView view, @Nullable final String url) {
-                return !(view == null || url == null) && WebViewManager.this.overrideUrl(view, Uri.parse(url));
             }
         });
     }
 
+//    @MainThread
+//    @NonNull
+//    private static Bitmap captureScreenshot(@NonNull final WebView webView) {
+//        Bitmap bitmap = Bitmap.createBitmap(webView.getWidth(), webView.getHeight(), Bitmap.Config.ARGB_8888);
+//        Canvas canvas = new Canvas(bitmap);
+//        webView.draw(canvas);
+//        return bitmap;
+//    }
+
+    /**
+     * Handles the "APP_STARTED" action. This notifies the various view components that the Zapic
+     * web page has started.
+     */
+    @WorkerThread
+    private void onAppStartedDispatched() {
+        mHandler.obtainMessage(ACTION_TYPE_APP_STARTED).sendToTarget();
+    }
+
+    /**
+     * @see #onAppStartedDispatched()
+     */
     @MainThread
-    private void createEventHandler(@NonNull final Context context) {
-        if (this.mHandler == null) {
-            this.mHandler = new Handler(context.getApplicationContext().getMainLooper(), new Callback() {
-                @Override
-                public boolean handleMessage(@Nullable final Message msg) {
-                    if (msg == null) {
-                        return false;
+    private void onAppStartedHandled() {
+        if (mWebView != null) {
+            mSessionManager.onWebViewLoaded(mWebView);
+            mViewManager.onWebViewLoaded(mWebView);
+        }
+    }
+
+    /**
+     * Handles the "CLOSE_PAGE_REQUESTED" action. This notifies the various view components that the
+     * Zapic web page should be hidden.
+     */
+    @WorkerThread
+    private void onClosePageRequestedDispatched() {
+        mHandler.obtainMessage(ACTION_TYPE_CLOSE_PAGE_REQUESTED).sendToTarget();
+    }
+
+    /**
+     * @see #onClosePageRequestedDispatched()
+     */
+    @MainThread
+    private void onClosePageRequestedHandled() {
+        mViewManager.hideWebPage();
+    }
+
+    /**
+     * Handles Zapic web page messages.
+     *
+     * @param message The Zapic web page message.
+     */
+    @WorkerThread
+    private void onDispatch(@NonNull final String message) {
+        final JSONObject action;
+        try {
+            action = new JSONObject(message);
+        } catch (JSONException e) {
+            Log.e(TAG, "Failed to parse Zapic web page message", e);
+            return;
+        }
+
+        final String type;
+        try {
+            type = action.getString("type");
+        } catch (JSONException e) {
+            Log.e(TAG, "The Zapic web page message type is missing", e);
+            return;
+        }
+
+        switch (type) {
+            case "APP_STARTED":
+                onAppStartedDispatched();
+                break;
+            case "CLOSE_PAGE_REQUESTED":
+                onClosePageRequestedDispatched();
+                break;
+            case "LOGGED_IN":
+                onLoggedInDispatched(action);
+                break;
+            case "LOGGED_OUT":
+                onLoggedOutDispatched();
+                break;
+            case "PAGE_READY":
+                onPageReadyDispatched();
+                break;
+            case "SHOW_BANNER":
+                onShowBannerDispatched(action);
+                break;
+            case "SHOW_PAGE":
+                onShowPageDispatched();
+                break;
+            case "SHOW_SHARE_MENU":
+                onShowShareMenuDispatched(action);
+                break;
+            default:
+                Log.e(TAG, String.format("The Zapic web page message type is not supported: %s", type));
+                break;
+        }
+    }
+
+    /**
+     * Handles the "LOGGED_IN" action. This notifies the session manager that the current player has
+     * changed.
+     */
+    @WorkerThread
+    private void onLoggedInDispatched(@NonNull final JSONObject action) {
+        String notificationToken;
+        String userId;
+        try {
+            final JSONObject payload = action.getJSONObject("payload");
+            notificationToken = payload.getString("notificationToken");
+            userId = payload.getString("userId");
+        } catch (JSONException e) {
+            Log.e(TAG, "The Zapic web page LOGGED_IN message is invalid", e);
+            return;
+        }
+
+        Map<String, Object> args = new HashMap<>();
+        args.put("player", new ZapicPlayer(userId, notificationToken));
+        mHandler.obtainMessage(ACTION_TYPE_LOGGED_IN, args).sendToTarget();
+    }
+
+    /**
+     * @see #onLoggedInDispatched(JSONObject)
+     */
+    @MainThread
+    private void onLoggedInHandled(Map<String, Object> args) {
+        mSessionManager.onLogin((ZapicPlayer) args.get("player"));
+    }
+
+    /**
+     * Handles the "LOGGED_OUT" action. This notifies the session manager that the current player
+     * has changed.
+     */
+    @WorkerThread
+    private void onLoggedOutDispatched() {
+        mHandler.obtainMessage(ACTION_TYPE_LOGGED_OUT).sendToTarget();
+    }
+
+    /**
+     * @see #onLoggedOutDispatched()
+     */
+    @MainThread
+    private void onLoggedOutHandled() {
+        mSessionManager.onLogout();
+    }
+
+    /**
+     * Handles the "PAGE_READY" action. This notifies the various view components that the Zapic web
+     * page may be shown.
+     */
+    @WorkerThread
+    private void onPageReadyDispatched() {
+        mHandler.obtainMessage(ACTION_TYPE_PAGE_READY).sendToTarget();
+    }
+
+    /**
+     * @see #onPageReadyDispatched()
+     */
+    @MainThread
+    private void onPageReadyHandled() {
+        mViewManager.onWebViewReady();
+    }
+
+    /**
+     * Handles the "SHOW_BANNER" action. This shows a notification message on the topmost activity.
+     */
+    @WorkerThread
+    private void onShowBannerDispatched(@NonNull final JSONObject action) {
+        String title;
+        String subtitle;
+        String encodedIcon;
+        JSONObject parameters;
+        try {
+            final JSONObject payload = action.getJSONObject("payload");
+            title = payload.getString("title");
+            subtitle = payload.optString("subtitle");
+            encodedIcon = payload.optString("icon");
+            parameters = payload.optJSONObject("parameters");
+        } catch (JSONException e) {
+            Log.e(TAG, "The Zapic web page SHOW_BANNER message is invalid", e);
+            return;
+        }
+
+        if (subtitle.equals("")) {
+            subtitle = null;
+        }
+
+        Bitmap icon;
+        if (encodedIcon.equals("")) {
+            icon = null;
+        } else {
+            try {
+                byte[] iconBytes = Base64.decode(encodedIcon, Base64.DEFAULT);
+                icon = BitmapFactory.decodeByteArray(iconBytes, 0, iconBytes.length);
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, "The Zapic web page SHOW_BANNER message icon is invalid", e);
+                icon = null;
+            }
+
+            if (icon != null) {
+                final int size = mApplicationContext.getResources().getDimensionPixelSize(R.dimen.alerter_alert_icn_size);
+                icon = Bitmap.createScaledBitmap(icon, size, size, false);
+            }
+        }
+
+        Map<String, Object> args = new HashMap<>();
+        args.put("title", title);
+        args.put("subtitle", subtitle);
+        args.put("icon", icon);
+        args.put("parameters", parameters);
+        mHandler.obtainMessage(ACTION_TYPE_SHOW_BANNER, args).sendToTarget();
+    }
+
+    /**
+     * @see #onShowBannerDispatched(JSONObject)
+     */
+    @MainThread
+    private void onShowBannerHandled(Map<String, Object> args) {
+        mViewManager.showNotification(new Notification((String) args.get("title"), (String) args.get("subtitle"), (Bitmap) args.get("icon"), (JSONObject) args.get("parameters")));
+    }
+
+    /**
+     * Handles the "SHOW_PAGE" action. This shows a notification message on the topmost activity.
+     */
+    @WorkerThread
+    private void onShowPageDispatched() {
+        mHandler.obtainMessage(ACTION_TYPE_SHOW_PAGE).sendToTarget();
+    }
+
+    /**
+     * @see #onShowPageDispatched()
+     */
+    @MainThread
+    private void onShowPageHandled() {
+        mViewManager.showWebPage();
+    }
+
+    /**
+     * Handles the "SHOW_SHARE_MENU" action. This shows an app chooser to share content.
+     */
+    @WorkerThread
+    private void onShowShareMenuDispatched(@NonNull final JSONObject action) {
+        String text;
+        String url;
+        String encodedImage;
+        try {
+            final JSONObject payload = action.getJSONObject("payload");
+            text = payload.optString("text");
+            url = payload.optString("url");
+            encodedImage = payload.optString("image");
+        } catch (JSONException e) {
+            Log.e(TAG, "The Zapic web page SHOW_SHARE_MENU message is invalid", e);
+            return;
+        }
+
+        String message = "";
+        if (!"".equals(text)) {
+            message = text;
+        }
+
+        if (!"".equals(url)) {
+            if ("".equals(message)) {
+                message = url;
+            } else {
+                message += " " + url;
+            }
+        }
+
+        if ("".equals(message)) {
+            message = null;
+        }
+
+        String imageMimeType;
+        Uri imageUri;
+        if (!encodedImage.equals("")) {
+            byte[] imageBytes = Base64.decode(encodedImage, Base64.DEFAULT);
+            try {
+                // Get the mime type without allocating memory for the pixels.
+                final BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inJustDecodeBounds = true;
+                BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length, options);
+                imageMimeType = options.outMimeType;
+            } catch (IllegalArgumentException e) {
+                Log.e(TAG, "The Zapic web page SHOW_SHARE_MENU message image is invalid", e);
+                imageMimeType = null;
+            }
+
+            File imageFile;
+            if (imageMimeType != null) {
+                final File imageDirectory = new File(mApplicationContext.getCacheDir(), "Zapic" + File.separator + "Share");
+                if (!imageDirectory.isDirectory() && !imageDirectory.mkdirs()) {
+                    imageFile = null;
+                } else {
+                    String imageFileExtension = MimeTypeMap.getSingleton().getExtensionFromMimeType(imageMimeType);
+                    if (imageFileExtension == null) {
+                        imageFileExtension = "file";
                     }
 
-                    switch (msg.what) {
-                        case 0: {
-                            final JSONObject event = (JSONObject) msg.obj;
-                            if (WebViewManager.this.mWebView == null) {
-                                synchronized (WebViewManager.this.mPendingLock) {
-                                    if (WebViewManager.this.mPendingEvents.size() == 1000) {
-                                        WebViewManager.this.mPendingEvents.poll();
-                                    }
-
-                                    WebViewManager.this.mPendingEvents.add(event);
-                                }
-                            } else {
-                                WebViewManager.this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'SUBMIT_EVENT', payload: " + event.toString() + " })", null);
-                            }
-
-                            return true;
-                        }
-                        case 1: {
-                            final String data = (String) msg.obj;
-                            if (WebViewManager.this.mWebView == null) {
-                                synchronized (WebViewManager.this.mPendingLock) {
-                                    WebViewManager.mPendingData = data;
-                                }
-                            } else {
-                                String action;
-                                try {
-                                    JSONObject o = new JSONObject();
-                                    o.put("type", "HANDLE_DATA");
-                                    o.put("payload", data);
-                                    action = o.toString();
-                                } catch (JSONException ignored) {
-                                    action = "";
-                                }
-
-                                WebViewManager.this.mWebView.evaluateJavascript("window.zapic.dispatch(" + action + ")", null);
-                            }
-
-                            return true;
-                        }
-                        default:
-                            return false;
-                    }
+                    imageFile = new File(imageDirectory, "IMG_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date()) + "." + imageFileExtension);
                 }
-            });
-        }
-    }
-
-    @MainThread
-    void finishActivity() {
-        if (this.mActivity == null) {
-            throw new IllegalStateException("A ZapicActivity has not been created");
-        }
-
-        this.mActivity.finish();
-    }
-
-    @Nullable
-    ZapicActivity getActivity() {
-        return this.mActivity;
-    }
-
-    @NonNull
-    WebView getWebView() {
-        WebView webView = this.mWebView;
-        assert webView != null : "mWebView is null";
-        return webView;
-    }
-
-    void login() {
-        final int size = this.mFragments.size();
-        if (size == 0) {
-            return;
-        }
-
-        final ZapicFragment fragment = this.mFragments.get(size - 1);
-        fragment.login();
-    }
-
-    @MainThread
-    void loginFailed(@NonNull final String message) {
-        if (this.mWebView != null) {
-            this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'LOGIN_WITH_PLAY_GAME_SERVICES', error: true, payload: '" + message.replace("'", "\\'") + "' })", null);
-        }
-    }
-
-    @MainThread
-    void loginSucceeded(@NonNull final String packageName, @NonNull final String serverAuthCode) {
-        if (this.mWebView != null) {
-            this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'LOGIN_WITH_PLAY_GAME_SERVICES', payload: { authCode: '" + serverAuthCode.replace("'", "\\'") + "', packageName: '" + packageName.replace("'", "\\'") + "' } })", null);
-        }
-    }
-
-    void logout() {
-        final int size = this.mFragments.size();
-        if (size == 0) {
-            return;
-        }
-
-        final ZapicFragment fragment = this.mFragments.get(size - 1);
-        fragment.logout();
-    }
-
-    @MainThread
-    @SuppressWarnings("deprecation")
-    void onActivityCreated(@NonNull final ZapicActivity activity) {
-        this.mActivity = activity;
-        if (this.mWebView == null) {
-            if (this.mAsyncTask != null) {
-                this.mAsyncTask.cancel(true);
+            } else {
+                imageFile = null;
             }
 
-            this.createEventHandler(activity);
-            this.createWebView(activity);
-            this.mAsyncTask = new AppSourceAsyncTask(AppSourceConfig.getUrl(), activity.getApplicationContext().getCacheDir()).execute();
-        } else if (this.mStarted) {
-            this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'OPEN_PAGE', payload: '" + activity.getPageParameter() + "' })", null);
-        }
+            if (imageFile != null) {
+                try {
+                    BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(imageFile));
+                    outputStream.write(imageBytes);
+                    outputStream.flush();
+                    outputStream.close();
 
-        this.showLoadingFragment();
-    }
-
-    @MainThread
-    void onActivityDestroyed(@NonNull final ZapicActivity activity) {
-        if (this.mActivity == activity) {
-            this.mActivity = null;
-            if (this.mFragments.size() == 0) {
-                this.mImageUploadCallback = null;
-
-                if (this.mAsyncTask != null) {
-                    this.mAsyncTask.cancel(true);
-                    this.mAsyncTask = null;
+                    final String packageName = mApplicationContext.getPackageName();
+                    imageUri = FileProvider.getUriForFile(mApplicationContext, packageName + ".zapic", imageFile);
+                } catch (IllegalArgumentException | IOException e) {
+                    imageUri = null;
                 }
-
-                if (this.mWebView != null) {
-                    this.mWebView.destroy();
-                    this.mWebView = null;
-                    this.mLoaded = false;
-                    this.mStarted = false;
-                }
-            } else if (this.mWebView != null) {
-                this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'CLOSE_PAGE' })", null);
-            }
-        }
-    }
-
-    @MainThread
-    void onActivityStarted() {
-        if (this.mWebView == null) {
-            return;
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            this.mWebView.getSettings().setOffscreenPreRaster(true);
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            this.mWebView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
-        }
-    }
-
-    @MainThread
-    void onActivityStopped() {
-        if (this.mWebView == null) {
-            return;
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            this.mWebView.getSettings().setOffscreenPreRaster(false);
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            this.mWebView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_BOUND, true);
-        }
-    }
-
-    @MainThread
-    @SuppressWarnings("deprecation")
-    void onFragmentCreated(@NonNull final ZapicFragment fragment) {
-        this.mFragments.add(fragment);
-        if (this.mWebView == null) {
-            if (this.mAsyncTask != null) {
-                this.mAsyncTask.cancel(true);
-            }
-
-            this.createEventHandler(fragment.getActivity());
-            this.createWebView(fragment.getActivity());
-            this.mAsyncTask = new AppSourceAsyncTask(AppSourceConfig.getUrl(), fragment.getActivity().getApplicationContext().getCacheDir()).execute();
-        }
-    }
-
-    @MainThread
-    void onFragmentDestroyed(@NonNull final ZapicFragment fragment) {
-        this.mFragments.remove(fragment);
-        if (this.mActivity == null && this.mFragments.size() == 0) {
-            this.mImageUploadCallback = null;
-
-            if (this.mAsyncTask != null) {
-                this.mAsyncTask.cancel(true);
-                this.mAsyncTask = null;
-            }
-
-            if (this.mWebView != null) {
-                this.mWebView.destroy();
-                this.mWebView = null;
-                this.mLoaded = false;
-                this.mStarted = false;
-            }
-        }
-    }
-
-    @AnyThread
-    void handleData(@NonNull final String data) {
-        if (this.mHandler == null || this.mWebView == null || !this.mStarted) {
-            synchronized (this.mPendingLock) {
-                WebViewManager.mPendingData = data;
+            } else {
+                imageUri = null;
             }
         } else {
-            this.mHandler.obtainMessage(1, data).sendToTarget();
+            imageMimeType = null;
+            imageUri = null;
+        }
+
+        Intent intent;
+        if (imageUri != null) {
+            intent = new Intent(Intent.ACTION_SEND);
+            intent.setType(imageMimeType);
+            intent.putExtra(Intent.EXTRA_STREAM, imageUri);
+            if (message != null) {
+                intent.putExtra(Intent.EXTRA_TEXT, message);
+            }
+            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } else if (message != null) {
+            intent = new Intent(Intent.ACTION_SEND);
+            intent.setType("text/plain");
+            intent.putExtra(Intent.EXTRA_TEXT, message);
+        } else {
+            intent = null;
+        }
+
+        if (intent != null) {
+            Map<String, Object> args = new HashMap<>();
+            args.put("intent", intent);
+            mHandler.obtainMessage(ACTION_TYPE_SHOW_SHARE_MENU, args).sendToTarget();
         }
     }
 
+    /**
+     * @see #onShowShareMenuDispatched(JSONObject)
+     */
     @MainThread
-    private boolean overrideUrl(@NonNull final WebView view, @NonNull final Uri url) {
-        final String scheme = url.getScheme();
-        final String host = url.getHost();
+    private void onShowShareMenuHandled(@NonNull final Map<String, Object> args) {
+        mViewManager.showShareChooser((Intent) args.get("intent"));
+    }
 
-        if (scheme != null && scheme.equalsIgnoreCase("market")) {
-            try {
-                // Create a Google Play Store app intent.
-                final Intent intent = new Intent(Intent.ACTION_VIEW);
-                intent.setData(url);
+    /**
+     * Creates the {@link WebView} instance and starts the Zapic web page.
+     * <p>
+     * This should only be called once.
+     */
+    @MainThread
+    void start() {
+        startDownload();
+        startSafeBrowsing();
+    }
 
-                // Open the Google Play Store app.
-                final Context context = view.getContext();
-                context.startActivity(intent);
-            } catch (ActivityNotFoundException e) {
-                // TODO: Send an error to the JavaScript application.
+    /**
+     * If necessary, starts downloading the Zapic web page in a background thread. This calls
+     * {@link #startWebView()} after setting {@link #mWebPage}.
+     */
+    @MainThread
+    private void startDownload() {
+        if (mWebPage == null) {
+            if (mWebPageTask == null) {
+                mViewManager.showLoadingPage();
+                mWebPageTask = new WebPageAsyncTask(
+                        mApplicationContext,
+                        new ValueCallback<WebPage>() {
+                            @MainThread
+                            @Override
+                            public void onReceiveValue(@Nullable final WebPage value) {
+                                mViewManager.showLoadingPage();
+                                mWebPageTask.cancel(true);
+                                mWebPageTask = null;
+
+                                if (value == null) {
+                                    mWebPage = null;
+                                    startDownload();
+                                } else {
+                                    mWebPage = value;
+                                    startWebView();
+                                }
+                            }
+                        },
+                        new ValueCallback<Integer>() {
+                            @MainThread
+                            @Override
+                            public void onReceiveValue(@Nullable final Integer value) {
+                                if (value != null && value > 1) {
+                                    mViewManager.showRetryPage();
+                                }
+                            }
+                        }).execute();
+            }
+        } else {
+            startWebView();
+        }
+    }
+
+    /**
+     * If necessary, starts Safe Browsing. This calls {@link #startWebView()} after setting
+     * {@link #mSafeBrowsingStarted}.
+     */
+    @MainThread
+    private void startSafeBrowsing() {
+        if (mSafeBrowsingStarted == null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                WebView.startSafeBrowsing(mApplicationContext, new ValueCallback<Boolean>() {
+                    @MainThread
+                    @Override
+                    public void onReceiveValue(@Nullable final Boolean value) {
+                        if (value == null) {
+                            mSafeBrowsingStarted = false;
+                        } else {
+                            mSafeBrowsingStarted = value;
+                        }
+
+                        startWebView();
+                    }
+                });
+            } else {
+                mSafeBrowsingStarted = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O;
+                startWebView();
+            }
+        } else {
+            startWebView();
+        }
+    }
+
+    /**
+     * If necessary, creates {@link #mWebView} and starts the Zapic web page.
+     */
+    @MainThread
+    @SuppressLint("SetJavaScriptEnabled")
+    private void startWebView() {
+        if (mSafeBrowsingStarted == null || mWebPage == null) {
+            return;
+        }
+
+        if (mWebView == null) {
+            mWebView = new WebView(new MutableContextWrapper(mApplicationContext));
+            mWebView.setVisibility(View.GONE);
+            mWebView.addJavascriptInterface(mWebViewJavascriptBridge, VARIABLE_NAME);
+            mWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+            mWebView.setOverScrollMode(View.OVER_SCROLL_NEVER);
+            mWebView.setWebChromeClient(new ChromeClient());
+            mWebView.setWebViewClient(new ViewClient());
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                mWebView.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_BOUND, true);
+            }
+
+            WebSettings webSettings = mWebView.getSettings();
+            webSettings.setAppCacheEnabled(false);
+            webSettings.setBlockNetworkImage(false);
+            webSettings.setBlockNetworkLoads(false);
+            webSettings.setBuiltInZoomControls(false);
+            webSettings.setDatabaseEnabled(false);
+            webSettings.setDisplayZoomControls(false);
+            webSettings.setDomStorageEnabled(true);
+            webSettings.setGeolocationEnabled(false);
+            webSettings.setJavaScriptCanOpenWindowsAutomatically(false);
+            webSettings.setJavaScriptEnabled(true);
+            webSettings.setLoadsImagesAutomatically(true);
+            webSettings.setMediaPlaybackRequiresUserGesture(false);
+            webSettings.setSaveFormData(false);
+            webSettings.setSupportMultipleWindows(false);
+            webSettings.setSupportZoom(false);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                webSettings.setDisabledActionModeMenuItems(WebSettings.MENU_ITEM_PROCESS_TEXT | WebSettings.MENU_ITEM_SHARE | WebSettings.MENU_ITEM_WEB_SEARCH);
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                webSettings.setSafeBrowsingEnabled(mSafeBrowsingStarted != null ? mSafeBrowsingStarted : false);
+            }
+        }
+
+        if (mWebPage == null) {
+            mWebView.loadUrl("about:blank");
+        } else {
+            mWebView.loadUrl(URL_WITH_SLASH);
+        }
+    }
+
+    private final class ChromeClient extends WebChromeClient {
+        @Override
+        @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+        public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
+            String[] acceptTypes = fileChooserParams.getAcceptTypes();
+            if (acceptTypes == null || acceptTypes.length != 1 || !acceptTypes[0].equalsIgnoreCase("image/*") || fileChooserParams.getMode() != FileChooserParams.MODE_OPEN) {
+                return false;
+            }
+
+            mViewManager.showImageChooser(filePathCallback);
+            return true;
+        }
+    }
+
+    private final class ViewClient extends WebViewClient {
+        @Override
+        @RequiresApi(Build.VERSION_CODES.O)
+        public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+            if (mWebView == null || mWebView != view) {
+                return false;
+            }
+
+            mSessionManager.onWebViewCrashed();
+            mViewManager.onWebViewCrashed();
+            view.destroy();
+
+            final boolean crashed = detail.didCrash();
+            if (crashed) {
+                Log.e(TAG, "The Zapic web page has crashed");
+            } else {
+                Log.e(TAG, "The Zapic web page has stopped to free memory");
+            }
+
+            if (mWebPageTask != null) {
+                mWebPageTask.cancel(true);
+            }
+
+            mWebPage = null;
+            mWebPageTask = null;
+            mWebView = null;
+
+            startDownload();
+            startSafeBrowsing();
+            return true;
+        }
+
+        @Override
+        @RequiresApi(Build.VERSION_CODES.O_MR1)
+        public void onSafeBrowsingHit(WebView view, WebResourceRequest request, int threatType, SafeBrowsingResponse callback) {
+            final String url = request.getUrl().toString();
+            if (url.startsWith(URL_WITH_SLASH)) {
+                callback.proceed(false);
+            } else {
+                super.onSafeBrowsingHit(view, request, threatType, callback);
+            }
+        }
+
+        @Nullable
+        @Override
+        @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+        public WebResourceResponse shouldInterceptRequest(final WebView view, final WebResourceRequest request) {
+            return shouldInterceptRequestImpl(request.getMethod(), request.getUrl().toString());
+        }
+
+        @Nullable
+        @Override
+        @SuppressWarnings("deprecation")
+        public WebResourceResponse shouldInterceptRequest(final WebView view, final String url) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+                return shouldInterceptRequestImpl("GET", url);
+            } else {
+                return null;
+            }
+        }
+
+        @CheckResult
+        @Nullable
+        private WebResourceResponse shouldInterceptRequestImpl(@NonNull final String method, @NonNull final String url) {
+            if ("GET".equalsIgnoreCase(method) && (url.startsWith(URL_WITH_SLASH) && !url.startsWith(URL_WITH_SLASH + "api/"))) {
+                InputStream data;
+                Map<String, String> headers;
+                String reasonPhrase;
+                int statusCode;
+                if (mWebPage == null) {
+                    data = new ByteArrayInputStream(new byte[0]);
+                    headers = new HashMap<>();
+                    reasonPhrase = "Not Found";
+                    statusCode = HttpsURLConnection.HTTP_NOT_FOUND;
+                } else {
+                    data = new ByteArrayInputStream(mWebPage.getHtml().getBytes(StandardCharsets.UTF_8));
+                    headers = mWebPage.getHeaders();
+                    reasonPhrase = "OK";
+                    statusCode = HttpsURLConnection.HTTP_OK;
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    return new WebResourceResponse("text/html", "utf-8", statusCode, reasonPhrase, headers, data);
+                } else {
+                    return new WebResourceResponse("text/html", "utf-8", data);
+                }
+            }
+
+            return null;
+        }
+
+        @Override
+        @RequiresApi(Build.VERSION_CODES.N)
+        public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+            return shouldOverrideUrlLoadingImpl(view, request.getMethod(), request.getUrl());
+        }
+
+        @Override
+        @SuppressWarnings("deprecation")
+        public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            return Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP || shouldOverrideUrlLoadingImpl(view, "GET", Uri.parse(url));
+        }
+
+        @CheckResult
+        private boolean shouldOverrideUrlLoadingImpl(@NonNull final WebView view, @NonNull final String method, @NonNull final Uri uri) {
+            final String url = uri.toString();
+            if ("GET".equalsIgnoreCase(method) && (url.startsWith(URL_WITH_SLASH) && !url.startsWith(URL_WITH_SLASH + "api/"))) {
+                // Allow the WebView to navigate to the Zapic web page.
+                return false;
+            }
+
+            final String scheme = uri.getScheme();
+            if (scheme != null && scheme.equalsIgnoreCase("mailto")) {
+                try {
+                    // Create a phone app intent.
+                    Intent intent = new Intent(Intent.ACTION_SENDTO);
+                    intent.setData(uri);
+
+                    // Open the email app.
+                    final Context context = view.getContext();
+                    context.startActivity(intent);
+                } catch (ActivityNotFoundException e) {
+                    Log.e(TAG, "mailto: link not supported", e);
+                }
+            } else if (scheme != null && scheme.equalsIgnoreCase("tel")) {
+                try {
+                    // Create a phone app intent.
+                    Intent intent = new Intent(Intent.ACTION_DIAL);
+                    intent.setData(uri);
+
+                    // Open the phone app.
+                    final Context context = view.getContext();
+                    context.startActivity(intent);
+                } catch (ActivityNotFoundException e) {
+                    Log.e(TAG, "tel: link not supported", e);
+                }
+            } else {
+                try {
+                    // Create a generic app intent (Chrome, Google Play Store, etc.).
+                    final Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setData(uri);
+
+                    // Open the app.
+                    final Context context = view.getContext();
+                    context.startActivity(intent);
+                } catch (ActivityNotFoundException e) {
+                    Log.e(TAG, String.format("%s: link not supported", scheme), e);
+                }
             }
 
             // Prevent the WebView from navigating to an invalid URL.
             return true;
-        }
-
-        if (scheme != null && scheme.equalsIgnoreCase("tel")) {
-            try {
-                // Create a phone app intent.
-                Intent intent = new Intent(Intent.ACTION_DIAL);
-                intent.setData(url);
-
-                // Open the phone app.
-                final Context context = view.getContext();
-                context.startActivity(intent);
-            } catch (ActivityNotFoundException e) {
-                // TODO: Send an error to the JavaScript application.
-            }
-        }
-
-        if (host != null && (host.equalsIgnoreCase("itunes.apple.com") || host.toLowerCase().endsWith(".itunes.apple.com"))) {
-            if (scheme != null && (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
-                try {
-                    // Create a web browser app intent.
-                    final Intent intent = new Intent(Intent.ACTION_VIEW);
-                    intent.setData(url);
-
-                    // Open the web browser app.
-                    final Context context = view.getContext();
-                    context.startActivity(intent);
-                } catch (ActivityNotFoundException e) {
-                    // TODO: Send an error to the JavaScript application.
-                }
-            }
-
-            // Prevent the WebView from navigating to an external URL.
-            return true;
-        }
-
-        if (host != null && (host.equalsIgnoreCase("play.google.com") || host.toLowerCase().endsWith(".play.google.com"))) {
-            if (scheme != null && (scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
-                try {
-                    // Create a web browser app intent.
-                    final Intent intent = new Intent(Intent.ACTION_VIEW);
-                    intent.setData(url);
-
-                    // Open the web browser app.
-                    final Context context = view.getContext();
-                    context.startActivity(intent);
-                } catch (ActivityNotFoundException e) {
-                    // TODO: Send an error to the JavaScript application.
-                }
-            }
-
-            // Prevent the WebView from navigating to an external URL.
-            return true;
-        }
-
-        return false;
-    }
-
-    @MainThread
-    void setLoaded() {
-        this.mLoaded = true;
-    }
-
-    @MainThread
-    void setStarted() {
-        assert this.mWebView != null : "mWebView is null";
-        this.mStarted = true;
-
-        synchronized (this.mPendingLock) {
-            JSONObject event;
-            while ((event = this.mPendingEvents.poll()) != null) {
-                this.mWebView.evaluateJavascript("window.zapic.dispatch({ type: 'SUBMIT_EVENT', payload: " + event.toString() + " })", null);
-            }
-
-            final String data = WebViewManager.mPendingData;
-            if (data != null) {
-                WebViewManager.mPendingData = null;
-
-                String action;
-                try {
-                    JSONObject o = new JSONObject();
-                    o.put("type", "HANDLE_DATA");
-                    o.put("payload", data);
-                    action = o.toString();
-                } catch (JSONException ignored) {
-                    action = "";
-                }
-
-                this.mWebView.evaluateJavascript("window.zapic.dispatch(" + action + ")", null);
-            }
-        }
-    }
-
-    @MainThread
-    void showAppFragment() {
-        if (this.mActivity == null) {
-            throw new IllegalStateException("A ZapicActivity has not been created");
-        }
-
-        final FragmentManager fragmentManager = this.mActivity.getSupportFragmentManager();
-        final Fragment currentFragment = fragmentManager.findFragmentById(R.id.activity_zapic_container);
-        if (currentFragment == null) {
-            fragmentManager.beginTransaction().add(R.id.activity_zapic_container, new ZapicAppFragment()).commit();
-        } else if (!(currentFragment instanceof ZapicAppFragment)) {
-            fragmentManager.beginTransaction().replace(R.id.activity_zapic_container, new ZapicAppFragment()).commit();
-        }
-    }
-
-    @MainThread
-    private void showLoadingFragment() {
-        if (this.mActivity == null) {
-            throw new IllegalStateException("A ZapicActivity has not been created");
-        }
-
-        final FragmentManager fragmentManager = this.mActivity.getSupportFragmentManager();
-        final Fragment currentFragment = fragmentManager.findFragmentById(R.id.activity_zapic_container);
-        if (currentFragment == null) {
-            fragmentManager.beginTransaction().add(R.id.activity_zapic_container, new ZapicLoadingFragment()).commit();
-        } else if (!(currentFragment instanceof ZapicLoadingFragment)) {
-            fragmentManager.beginTransaction().replace(R.id.activity_zapic_container, new ZapicLoadingFragment()).commit();
-        }
-    }
-
-    @MainThread
-    private void showOfflineFragment() {
-        if (this.mActivity == null) {
-            throw new IllegalStateException("A ZapicActivity has not been created");
-        }
-
-        final FragmentManager fragmentManager = this.mActivity.getSupportFragmentManager();
-        final Fragment currentFragment = fragmentManager.findFragmentById(R.id.activity_zapic_container);
-        if (currentFragment == null) {
-            fragmentManager.beginTransaction().add(R.id.activity_zapic_container, new ZapicOfflineFragment()).commit();
-        } else if (!(currentFragment instanceof ZapicOfflineFragment)) {
-            fragmentManager.beginTransaction().replace(R.id.activity_zapic_container, new ZapicOfflineFragment()).commit();
-        }
-    }
-
-    @MainThread
-    void submitImageUpload(@NonNull final Uri[] files) {
-        if (this.mImageUploadCallback != null) {
-            this.mImageUploadCallback.onReceiveValue(files);
-            this.mImageUploadCallback = null;
-        }
-    }
-
-    @AnyThread
-    void submitEvent(@NonNull final JSONObject event) {
-        if (this.mHandler == null || this.mWebView == null || !this.mStarted) {
-            synchronized (this.mPendingLock) {
-                if (this.mPendingEvents.size() == 1000) {
-                    this.mPendingEvents.poll();
-                }
-
-                this.mPendingEvents.add(event);
-            }
-        } else {
-            this.mHandler.obtainMessage(0, event).sendToTarget();
-        }
-    }
-
-    @MainThread
-    @SuppressWarnings("deprecation")
-    void submitLoadApp(@NonNull final AppSource appSource) {
-        if (this.mWebView != null) {
-            final String url = AppSourceConfig.getUrl();
-            this.mWebView.loadDataWithBaseURL(url, appSource.getHtml(), "text/html", "utf-8", url);
         }
     }
 }

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="alert_default_text_color">@android:color/white</color>
+    <color name="alert_default_icon_color">@android:color/white</color>
     <color name="zapic_blue">#0085E4</color>
     <color name="zapic_green">#00DEAE</color>
     <color name="zapic_primary">#00B1CA</color>
