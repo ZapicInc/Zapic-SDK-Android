@@ -693,6 +693,7 @@ final class WebViewManager {
      */
     @MainThread
     @SuppressLint("SetJavaScriptEnabled")
+    @SuppressWarnings("deprecation")
     private void startWebView() {
         if (mSafeBrowsingStarted == null || mWebPage == null) {
             return;
