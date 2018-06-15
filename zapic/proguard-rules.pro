@@ -1,4 +1,4 @@
-# Keep Java API
+# Keep Zapic Java APIs
 -keep class com.zapic.sdk.android.Zapic {
   public *;
 }
@@ -15,7 +15,10 @@
   public *;
 }
 
-# Keep JavaScript API
+# Keep Zapic JavaScript API
 -keepclassmembers class com.zapic.sdk.android.WebViewJavascriptBridge {
   public *;
 }
+
+# Keep Java APIs used by reflection
+-keepnames class android.support.v4.app.Fragment
