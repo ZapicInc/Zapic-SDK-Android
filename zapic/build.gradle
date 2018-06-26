@@ -1,9 +1,11 @@
-apply plugin: 'com.android.library'
+plugins {
+    id 'com.android.library'
+    id 'digital.wup.android-maven-publish'
+    id 'com.jfrog.bintray' version '1.8.2'
+}
 
-ext {
-    PUBLISH_GROUP_ID = 'com.zapic.sdk.android'
-    PUBLISH_ARTIFACT_ID = 'zapic-sdk-android'
-    PUBLISH_VERSION = '1.0.0'
+configurations {
+    javadocDeps
 }
 
 android {
@@ -34,15 +36,126 @@ android {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
-    implementation "com.android.support:support-annotations:$rootProject.ext.googleSupportVersion"
-    implementation "com.android.support:support-core-utils:$rootProject.ext.googleSupportVersion"
-    compileOnly "com.android.support:support-v4:$rootProject.ext.googleSupportVersion"
-    compileOnly "com.google.android.gms:play-services-auth:$rootProject.ext.googlePlayServicesVersion"
-    compileOnly "com.google.android.gms:play-services-games:$rootProject.ext.googlePlayServicesVersion"
+    implementation 'com.android.support:support-annotations:27.1.1'
+    implementation 'com.android.support:support-core-utils:27.1.1'
+    compileOnly 'com.android.support:support-v4:27.1.1'
+    compileOnly 'com.google.android.gms:play-services-auth:15.0.1'
+    compileOnly 'com.google.android.gms:play-services-games:15.0.1'
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+
+    javadocDeps 'com.android.support:support-annotations:27.1.1'
+    javadocDeps 'com.android.support:support-core-utils:27.1.1'
+    javadocDeps 'com.android.support:support-v4:27.1.1'
 }
 
-apply from: './release.gradle'
+task androidJavadoc(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+    classpath += configurations.javadocDeps
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+}
+
+task androidJavadocJar(type: Jar, dependsOn: androidJavadoc) {
+    classifier = 'javadoc'
+    from androidJavadoc.destinationDir
+}
+
+task androidSourceJar(type: Jar) {
+    classifier = 'sources'
+    from android.sourceSets.main.java.srcDirs
+}
+
+def pomConfig = {
+    organization {
+        name 'Zapic, Inc.'
+        url 'https://www.zapic.com'
+    }
+
+    licenses {
+        license {
+            name 'MIT License'
+            url 'https://raw.githubusercontent.com/ZapicInc/Zapic-SDK-Android/master/LICENSE'
+            distribution 'repo'
+        }
+    }
+
+    developers {
+        developer {
+            id 'seniorquico'
+            name 'Kyle Dodson'
+            email 'kyle@zapic.com'
+            url 'https://github.com/seniorquico'
+            organization 'Zapic, Inc.'
+            organizationUrl 'https://www.zapic.com'
+        }
+    }
+
+    scm {
+        url 'https://github.com/ZapicInc/Zapic-SDK-Android'
+        connection 'scm:git:git://github.com/ZapicInc/Zapic-SDK-Android.git'
+        developerConnection 'scm:git:git@github.com:ZapicInc/Zapic-SDK-Android.git'
+    }
+
+    issueManagement {
+        system 'GitHub Issues'
+        url 'https://github.com/ZapicInc/Zapic-SDK-Android/issues'
+    }
+}
+
+publishing {
+    publications {
+        mavenAar(MavenPublication) {
+            from components.android
+
+            groupId 'com.zapic.sdk.android'
+            artifactId 'zapic-sdk-android'
+            version android.defaultConfig.versionName
+
+            artifact androidJavadocJar
+            artifact androidSourceJar
+
+            pom.withXml {
+                def rootNode = asNode()
+                rootNode.appendNode('description', 'The Zapic SDK for Android is an open-source project that allows game developers to integrate with the Zapic platform from a game written in Kotlin or Java for Android.')
+                rootNode.appendNode('name', 'Zapic SDK for Android')
+                rootNode.appendNode('url', 'https://www.zapic.com')
+                rootNode.appendNode('inceptionYear', '2017')
+                rootNode.children().last() + pomConfig
+            }
+        }
+    }
+}
+
+bintray {
+    user = System.getenv('BINTRAY_USER')
+    key = System.getenv('BINTRAY_API_KEY')
+    publications = ['mavenAar']
+
+    pkg {
+        repo = 'maven'
+        name = 'zapic-sdk-android'
+        userOrg = 'zapic'
+        desc = 'Zapic SDK for Android'
+        websiteUrl = 'https://github.com/ZapicInc/Zapic-SDK-Android'
+        issueTrackerUrl = 'https://github.com/ZapicInc/Zapic-SDK-Android/issues'
+        vcsUrl = 'https://github.com/ZapicInc/Zapic-SDK-Android.git'
+        licenses = ['MIT']
+        labels = ['android', 'zapic', 'sdk']
+        publicDownloadNumbers = true
+
+        version {
+            name = android.defaultConfig.versionName
+            desc = 'Zapic SDK for Android'
+            released  = new Date()
+
+            gpg {
+                sign = true
+                passphrase = System.getenv('BINTRAY_GPG_PASSPHRASE')
+            }
+        }
+    }
+}
+
+apply plugin: 'com.google.android.gms.strict-version-matcher-plugin'
