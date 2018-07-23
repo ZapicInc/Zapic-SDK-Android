@@ -42,6 +42,10 @@ public final class ZapicFrameworkFragment extends Fragment {
     @Override
     @SuppressWarnings("deprecation")
     public void onAttach(@NonNull final Activity activity) {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onAttach");
+        }
+
         super.onAttach(activity);
 
         if (mViewManager == null) {
@@ -53,6 +57,10 @@ public final class ZapicFrameworkFragment extends Fragment {
     @Override
     @RequiresApi(Build.VERSION_CODES.M)
     public void onAttach(@NonNull final Context context) {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onAttach");
+        }
+
         super.onAttach(context);
 
         if (mViewManager == null) {
@@ -63,12 +71,27 @@ public final class ZapicFrameworkFragment extends Fragment {
     @MainThread
     @Override
     public void onCreate(@Nullable final Bundle savedInstanceState) {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onCreate");
+        }
+
         super.onCreate(savedInstanceState);
 
         // This retains the fragment instance when configuration changes occur. This effectively
         // keeps instance variables from being garbage collected. Note that the fragment is still
         // detached from the old activity and attached to the new activity.
         setRetainInstance(true);
+    }
+
+    @Override
+    public void onDetach() {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onDetach");
+        }
+
+        super.onDetach();
+
+        mViewManager = null;
     }
 
     @MainThread
@@ -97,17 +120,5 @@ public final class ZapicFrameworkFragment extends Fragment {
         if (mViewManager != null) {
             mViewManager.onResume(this);
         }
-    }
-
-    @MainThread
-    @Override
-    public void onStop() {
-        if (BuildConfig.DEBUG) {
-            Log.d(TAG, "onStop");
-        }
-
-        super.onStop();
-
-        mViewManager = null;
     }
 }
