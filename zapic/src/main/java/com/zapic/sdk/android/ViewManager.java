@@ -67,6 +67,11 @@ final class ViewManager {
     private ZapicActivity mActivity;
 
     /**
+     * A value indicating whether the {@link ZapicActivity} has been requested.
+     */
+    private boolean mActivityRequested;
+
+    /**
      * The list of current {@link ZapicFrameworkFragment} and {@link ZapicSupportFragment}
      * instances.
      */
@@ -91,6 +96,7 @@ final class ViewManager {
     @MainThread
     ViewManager() {
         mActivity = null;
+        mActivityRequested = false;
         mAlertListener = new AlertListener();
         mFragments = new ArrayList<>();
         mNotifications = new LinkedList<>();
@@ -199,6 +205,7 @@ final class ViewManager {
         }
 
         mActivity = activity;
+        mActivityRequested = false;
         if (mPage == Page.LOADING_PAGE) {
             activity.showLoadingPage();
         } else if (mPage == Page.RETRY_PAGE) {
@@ -294,7 +301,11 @@ final class ViewManager {
         }
 
         mFragments = fragments;
-        showNotificationIfReady();
+        if (mActivityRequested) {
+            showWebPage();
+        } else {
+            showNotificationIfReady();
+        }
     }
 
     /**
@@ -314,7 +325,11 @@ final class ViewManager {
         }
 
         mFragments = fragments;
-        showNotificationIfReady();
+        if (mActivityRequested) {
+            showWebPage();
+        } else {
+            showNotificationIfReady();
+        }
     }
 
     /**
@@ -485,7 +500,10 @@ final class ViewManager {
 
         final Activity activity = getActivityOfTopmostFragment();
         if (activity != null) {
+            mActivityRequested = false;
             activity.startActivity(ZapicActivity.createIntent(activity, "current"));
+        } else {
+            mActivityRequested = true;
         }
     }
 
