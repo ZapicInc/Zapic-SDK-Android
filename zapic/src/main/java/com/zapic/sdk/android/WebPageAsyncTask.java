@@ -49,7 +49,7 @@ final class WebPageAsyncTask extends AsyncTask<Void, Integer, WebPage> implement
     /**
      * The HTTPS connection and input stream read timeout (in milliseconds).
      */
-    private static final int TIMEOUT = 30000;
+    private static final int TIMEOUT = 10000;
 
     /**
      * The URL of the Zapic web page with a trailing slash.
@@ -332,10 +332,15 @@ final class WebPageAsyncTask extends AsyncTask<Void, Integer, WebPage> implement
 
         final int endOfHead = startOfHead + "<head>".length();
         final String script = "<script>" +
+                "window.androidWebViewWatchdog = window.setTimeout(function () {" +
+                "  window.androidWebView.dispatch('{\"type\":\"APP_FAILED\"}');" +
+                "}, " + Integer.toString(TIMEOUT, 10) + ");" +
                 "window.zapic = {" +
                 "  environment: 'webview'," +
                 "  version: 3," +
                 "  onLoaded: function (action$, publishAction) {" +
+                "    window.clearTimeout(window.androidWebViewWatchdog);" +
+                "    delete window.androidWebViewWatchdog;" +
                 "    window.zapic.dispatch = function (action) {" +
                 "      publishAction(action)" +
                 "    };" +
@@ -347,7 +352,7 @@ final class WebPageAsyncTask extends AsyncTask<Void, Integer, WebPage> implement
                 "  androidVersion: '" + String.valueOf(Build.VERSION.SDK_INT).replace("'", "\\'") + "'," +
                 "  sdkVersion: '" + BuildConfig.VERSION_NAME.replace("'", "\\'") + "'," +
                 "};" +
-                "</script>".replaceAll(" +", "");
+                "</script>".replaceAll(" +", " ");
 
         final StringBuilder htmlBuilder = new StringBuilder(html);
         htmlBuilder.insert(endOfHead, script);

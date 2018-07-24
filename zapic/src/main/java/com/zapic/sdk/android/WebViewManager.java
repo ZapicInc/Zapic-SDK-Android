@@ -65,44 +65,49 @@ import javax.net.ssl.HttpsURLConnection;
  */
 final class WebViewManager {
     /**
+     * Identifies the "APP_FAILED" action type.
+     */
+    private static final int ACTION_TYPE_APP_FAILED = 1000;
+
+    /**
      * Identifies the "APP_STARTED" action type.
      */
-    private static final int ACTION_TYPE_APP_STARTED = 1000;
+    private static final int ACTION_TYPE_APP_STARTED = 1001;
 
     /**
      * Identifies the "CLOSE_PAGE_REQUESTED" action type.
      */
-    private static final int ACTION_TYPE_CLOSE_PAGE_REQUESTED = 1001;
+    private static final int ACTION_TYPE_CLOSE_PAGE_REQUESTED = 1002;
 
     /**
      * Identifies the "LOGGED_IN" action type.
      */
-    private static final int ACTION_TYPE_LOGGED_IN = 1002;
+    private static final int ACTION_TYPE_LOGGED_IN = 1003;
 
     /**
      * Identifies the "LOGGED_OUT" action type.
      */
-    private static final int ACTION_TYPE_LOGGED_OUT = 1003;
+    private static final int ACTION_TYPE_LOGGED_OUT = 1004;
 
     /**
      * Identifies the "PAGE_READY" action type.
      */
-    private static final int ACTION_TYPE_PAGE_READY = 1004;
+    private static final int ACTION_TYPE_PAGE_READY = 1005;
 
     /**
      * Identifies the "SHOW_BANNER" action type.
      */
-    private static final int ACTION_TYPE_SHOW_BANNER = 1005;
+    private static final int ACTION_TYPE_SHOW_BANNER = 1006;
 
     /**
      * Identifies the "SHOW_PAGE" action type.
      */
-    private static final int ACTION_TYPE_SHOW_PAGE = 1006;
+    private static final int ACTION_TYPE_SHOW_PAGE = 1007;
 
     /**
      * Identifies the "SHOW_SHARE_MENU" action type.
      */
-    private static final int ACTION_TYPE_SHOW_SHARE_MENU = 1007;
+    private static final int ACTION_TYPE_SHOW_SHARE_MENU = 1008;
 
     /**
      * The tag used to identify log messages.
@@ -208,6 +213,9 @@ final class WebViewManager {
                 }
 
                 switch (msg.what) {
+                    case ACTION_TYPE_APP_FAILED:
+                        onAppFailedHandled();
+                        break;
                     case ACTION_TYPE_APP_STARTED:
                         onAppStartedHandled();
                         break;
@@ -264,6 +272,29 @@ final class WebViewManager {
 //        webView.draw(canvas);
 //        return bitmap;
 //    }
+
+    /**
+     * Handles the "APP_FAILED" action. This notifies the various view components that the Zapic
+     * web page has failed to start.
+     */
+    @WorkerThread
+    private void onAppFailedDispatched() {
+        mHandler.obtainMessage(ACTION_TYPE_APP_FAILED).sendToTarget();
+    }
+
+    /**
+     * @see #onAppStartedDispatched()
+     */
+    @MainThread
+    private void onAppFailedHandled() {
+        mWebViewStarted = false;
+        if (mWebView != null) {
+            mWebView.stopLoading();
+            mWebView.loadUrl("about:blank");
+        }
+
+        mViewManager.showRetryPage();
+    }
 
     /**
      * Handles the "APP_STARTED" action. This notifies the various view components that the Zapic
@@ -327,6 +358,9 @@ final class WebViewManager {
         }
 
         switch (type) {
+            case "APP_FAILED":
+                onAppFailedDispatched();
+                break;
             case "APP_STARTED":
                 onAppStartedDispatched();
                 break;
