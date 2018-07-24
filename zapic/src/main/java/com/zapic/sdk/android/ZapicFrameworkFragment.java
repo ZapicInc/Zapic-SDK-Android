@@ -49,7 +49,7 @@ public final class ZapicFrameworkFragment extends Fragment {
         super.onAttach(activity);
 
         if (mViewManager == null) {
-            mViewManager = Zapic.onAttachedFragment(activity);
+            mViewManager = Zapic.onAttachedFragment(activity).getViewManager();
         }
     }
 
@@ -64,7 +64,7 @@ public final class ZapicFrameworkFragment extends Fragment {
         super.onAttach(context);
 
         if (mViewManager == null) {
-            mViewManager = Zapic.onAttachedFragment(context);
+            mViewManager = Zapic.onAttachedFragment(context).getViewManager();
         }
     }
 

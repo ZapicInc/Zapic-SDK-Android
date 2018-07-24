@@ -27,6 +27,7 @@ import android.webkit.RenderProcessGoneDetail;
 import android.webkit.SafeBrowsingResponse;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -110,7 +111,9 @@ final class WebViewManager {
     private static final String TAG = "WebViewManager";
 
     /**
-     * The URL of the Zapic web page with a trailing slash.
+     * The URL of the Zapic web page with a trailing slash. This contains all lowercase characters
+     * to facilitate case-insensitive comparisons (by forcing all lowercase characters in the other
+     * string).
      */
     @NonNull
     private static final String URL_WITH_SLASH = "https://app.zapic.net/";
@@ -181,6 +184,11 @@ final class WebViewManager {
     private WebView mWebView;
 
     /**
+     * A value indicating whether the "APP_STARTED" action has been received.
+     */
+    private boolean mWebViewStarted;
+
+    /**
      * Creates a new {@link WebViewManager} instance.
      *
      * @param context        Any context object (e.g. the global {@link android.app.Application} or
@@ -245,6 +253,7 @@ final class WebViewManager {
                 }
             }
         });
+        mWebViewStarted = false;
     }
 
 //    @MainThread
@@ -270,6 +279,7 @@ final class WebViewManager {
      */
     @MainThread
     private void onAppStartedHandled() {
+        mWebViewStarted = true;
         if (mWebView != null) {
             mSessionManager.onWebViewLoaded(mWebView);
             mViewManager.onWebViewLoaded(mWebView);
@@ -605,6 +615,21 @@ final class WebViewManager {
     }
 
     /**
+     * Retries to download and start the Zapic web page.
+     */
+    @MainThread
+    void retry() {
+        mViewManager.showLoadingPage();
+
+        if (mWebPageTask != null) {
+            mWebPageTask.cancel(true);
+            mWebPageTask = null;
+        }
+
+        startDownload();
+    }
+
+    /**
      * Creates the {@link WebView} instance and starts the Zapic web page.
      * <p>
      * This should only be called once.
@@ -670,17 +695,24 @@ final class WebViewManager {
                     @MainThread
                     @Override
                     public void onReceiveValue(@Nullable final Boolean value) {
-                        if (value == null) {
+                        if (value == null || !value) {
+                            Log.i(TAG, "Safe Browsing is not supported");
                             mSafeBrowsingStarted = false;
                         } else {
-                            mSafeBrowsingStarted = value;
+                            Log.i(TAG, "Safe Browsing is supported");
+                            mSafeBrowsingStarted = true;
                         }
 
                         startWebView();
                     }
                 });
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Log.i(TAG, "Safe Browsing is assumed to be supported");
+                mSafeBrowsingStarted = true;
+                startWebView();
             } else {
-                mSafeBrowsingStarted = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O;
+                Log.i(TAG, "Safe Browsing is not supported");
+                mSafeBrowsingStarted = false;
                 startWebView();
             }
         } else {
@@ -752,7 +784,7 @@ final class WebViewManager {
     private final class ChromeClient extends WebChromeClient {
         @Override
         @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-        public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
+        public boolean onShowFileChooser(final WebView webView, final ValueCallback<Uri[]> filePathCallback, final FileChooserParams fileChooserParams) {
             String[] acceptTypes = fileChooserParams.getAcceptTypes();
             if (acceptTypes == null || acceptTypes.length != 1 || !acceptTypes[0].equalsIgnoreCase("image/*") || fileChooserParams.getMode() != FileChooserParams.MODE_OPEN) {
                 return false;
@@ -765,8 +797,24 @@ final class WebViewManager {
 
     private final class ViewClient extends WebViewClient {
         @Override
+        @SuppressWarnings("deprecation")
+        public void onReceivedError(final WebView view, final int errorCode, final String description, final String failingUrl) {
+            if (!mWebViewStarted) {
+                mViewManager.showRetryPage();
+            }
+        }
+
+        @Override
+        @RequiresApi(Build.VERSION_CODES.M)
+        public void onReceivedError(final WebView view, final WebResourceRequest request, final WebResourceError error) {
+            if (!mWebViewStarted) {
+                mViewManager.showRetryPage();
+            }
+        }
+
+        @Override
         @RequiresApi(Build.VERSION_CODES.O)
-        public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+        public boolean onRenderProcessGone(final WebView view, final RenderProcessGoneDetail detail) {
             if (mWebView == null || mWebView != view) {
                 return false;
             }
@@ -789,6 +837,7 @@ final class WebViewManager {
             mWebPage = null;
             mWebPageTask = null;
             mWebView = null;
+            mWebViewStarted = false;
 
             startDownload();
             startSafeBrowsing();
@@ -797,8 +846,8 @@ final class WebViewManager {
 
         @Override
         @RequiresApi(Build.VERSION_CODES.O_MR1)
-        public void onSafeBrowsingHit(WebView view, WebResourceRequest request, int threatType, SafeBrowsingResponse callback) {
-            final String url = request.getUrl().toString();
+        public void onSafeBrowsingHit(final WebView view, final WebResourceRequest request, final int threatType, final SafeBrowsingResponse callback) {
+            final String url = request.getUrl().toString().toLowerCase();
             if (url.startsWith(URL_WITH_SLASH)) {
                 callback.proceed(false);
             } else {
@@ -826,7 +875,8 @@ final class WebViewManager {
 
         @CheckResult
         @Nullable
-        private WebResourceResponse shouldInterceptRequestImpl(@NonNull final String method, @NonNull final String url) {
+        private WebResourceResponse shouldInterceptRequestImpl(@NonNull final String method, @NonNull String url) {
+            url = url.toLowerCase();
             if ("GET".equalsIgnoreCase(method) && (url.startsWith(URL_WITH_SLASH) && !url.startsWith(URL_WITH_SLASH + "api/"))) {
                 InputStream data;
                 Map<String, String> headers;
@@ -856,19 +906,19 @@ final class WebViewManager {
 
         @Override
         @RequiresApi(Build.VERSION_CODES.N)
-        public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+        public boolean shouldOverrideUrlLoading(final WebView view, final WebResourceRequest request) {
             return shouldOverrideUrlLoadingImpl(view, request.getMethod(), request.getUrl());
         }
 
         @Override
         @SuppressWarnings("deprecation")
-        public boolean shouldOverrideUrlLoading(WebView view, String url) {
+        public boolean shouldOverrideUrlLoading(final WebView view, final String url) {
             return Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP || shouldOverrideUrlLoadingImpl(view, "GET", Uri.parse(url));
         }
 
         @CheckResult
         private boolean shouldOverrideUrlLoadingImpl(@NonNull final WebView view, @NonNull final String method, @NonNull final Uri uri) {
-            final String url = uri.toString();
+            final String url = uri.toString().toLowerCase();
             if ("GET".equalsIgnoreCase(method) && (url.startsWith(URL_WITH_SLASH) && !url.startsWith(URL_WITH_SLASH + "api/"))) {
                 // Allow the WebView to navigate to the Zapic web page.
                 return false;
