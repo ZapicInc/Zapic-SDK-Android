@@ -55,6 +55,11 @@ import java.util.Iterator;
  */
 public final class Zapic {
     /**
+     * The name of the OneSignal push notification tag.
+     */
+    public static final String NOTIFICATION_TAG = "zapic_player_token";
+
+    /**
      * A synchronization lock for {@code sInstance} writes.
      */
     @NonNull
