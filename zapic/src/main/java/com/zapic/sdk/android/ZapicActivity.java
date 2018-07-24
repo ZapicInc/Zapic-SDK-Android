@@ -35,6 +35,7 @@ import android.view.Window;
 import android.webkit.ValueCallback;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
@@ -85,23 +86,6 @@ public final class ZapicActivity extends Activity {
     private ViewPropertyAnimator mAnimation;
 
     /**
-     * A value indicating whether the activity has started.
-     */
-    private boolean mStarted;
-
-    /**
-     * The {@link WebView} instance.
-     */
-    @Nullable
-    private WebView mWebView;
-
-    /**
-     * The {@link ViewManager} instance.
-     */
-    @Nullable
-    private ViewManager mViewManager;
-
-    /**
      * The image chooser callback.
      */
     @Nullable
@@ -114,6 +98,29 @@ public final class ZapicActivity extends Activity {
     private Uri mImageUriForCamera;
 
     /**
+     * A value indicating whether the activity has started.
+     */
+    private boolean mStarted;
+
+    /**
+     * The {@link ViewManager} instance.
+     */
+    @Nullable
+    private ViewManager mViewManager;
+
+    /**
+     * The {@link WebView} instance.
+     */
+    @Nullable
+    private WebView mWebView;
+
+    /**
+     * The {@link WebViewManager} instance.
+     */
+    @Nullable
+    private WebViewManager mWebViewManager;
+
+    /**
      * Creates a new {@link ZapicActivity} instance.
      */
     @MainThread
@@ -124,6 +131,7 @@ public final class ZapicActivity extends Activity {
         mStarted = false;
         mViewManager = null;
         mWebView = null;
+        mWebViewManager = null;
     }
 
     /**
@@ -363,7 +371,9 @@ public final class ZapicActivity extends Activity {
         showLoadingPage();
         Zapic.attachFragment(this);
 
-        mViewManager = Zapic.onAttachedFragment(this);
+        final Managers managers = Zapic.onAttachedFragment(this);
+        mWebViewManager = managers.getWebViewManager();
+        mViewManager = managers.getViewManager();
         mViewManager.onActivityCreated(this);
     }
 
@@ -382,6 +392,7 @@ public final class ZapicActivity extends Activity {
         }
 
         mImageUriForCamera = null;
+        mWebViewManager = null;
 
         assert mViewManager != null : "mViewManager == null";
         mViewManager.onActivityDestroyed(this);
@@ -468,16 +479,15 @@ public final class ZapicActivity extends Activity {
 
     @MainThread
     public void onRetryClick(@Nullable final View view) {
-//        // TODO: Fix retry button. We need a way to call into the WebViewManager. :-(
-//        final Button retryButton = findViewById(R.id.activity_zapic_retry);
-//        if (retryButton == null || !retryButton.equals(view)) {
-//            return;
-//        }
-//
-//        if (mWebViewManager != null) {
-//            showLoadingPage();
-//            mWebViewManager.retryLoadWebPage();
-//        }
+        final Button retryButton = findViewById(R.id.activity_zapic_retry);
+        if (retryButton == null || !retryButton.equals(view)) {
+            return;
+        }
+
+        if (mWebViewManager != null) {
+            showLoadingPage();
+            mWebViewManager.retry();
+        }
     }
 
     @MainThread

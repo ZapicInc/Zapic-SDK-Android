@@ -270,18 +270,20 @@ public final class Zapic {
     }
 
     /**
-     * Gets the {@link ViewManager} instance.
+     * Gets the {@link SessionManager}, {@link ViewManager}, and {@link WebViewManager} instances.
      * <p>
      * <b>This method must be invoked on the UI thread.</b>
      *
      * @param context Any context object (e.g. the global {@link Application} or an
      *                {@link Activity}).
-     * @return The {@link ViewManager} instance.
+     * @return The {@link SessionManager}, {@link ViewManager}, and {@link WebViewManager}
+     *         instances.
      * @throws IllegalArgumentException    If {@code context} is {@code null}.
      * @throws IllegalThreadStateException If not invoked on the UI thread.
      */
     @MainThread
-    static ViewManager onAttachedFragment(@Nullable final Context context) {
+    @NonNull
+    static Managers onAttachedFragment(@Nullable final Context context) {
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "onAttachedFragment");
         }
@@ -300,7 +302,7 @@ public final class Zapic {
             assert instance != null : "instance is null";
         }
 
-        return instance.mViewManager;
+        return new Managers(instance.mSessionManager, instance.mViewManager, instance.mWebViewManager);
     }
 
     /**
