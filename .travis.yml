@@ -1,0 +1,61 @@
+language: android
+
+android:
+  components:
+    # Updates Android SDK Platform-Tools and Android SDK Tools to latest version
+    - tools
+    - platform-tools
+    - tools
+    # Installs the target Android SDK Build-Tools and Android SDK Platform
+    - build-tools-27.0.3
+    - android-27
+branches:
+  only:
+    - master
+    - /\d+\.\d+\.\d+.*/
+cache:
+  directories:
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
+    - $HOME/.android/build-cache
+env:
+  global:
+    # BINTRAY_USER
+    - secure: z+BkrsOHtyTthFZRLMFx0uJuiQumjFVYZ/b95+4CgfbYXdE77Upv3ZVZZHahDd+/yCcuzKS6B8a3iiiXP+mrZmPZUcY4B8DOmCkMn40ZqKi1gSifOzTkH1InLad2nJ+Y8daQ2P091u9wafNJjDlVWAc5/rcMyPy5JTHJsWrd/8pRkngkUNVYTB4oysapZv6tt8dx+AbS/PcV49eVRBlo25dL9OYzCtr4ypwAsPB5GS+vaHjo3JnywZeyAHIKg3emips5eKxj3/r1oLO9TO7pou94SHxJ34rom7jq24gVZysiySSx3xaYc+ncyaj8Hljl5EqE7H3sw1sbUeswxQPuny5t1Yz1AWQBSfs1iXAnkjcGjdde6LAkotS/HVqlzHSTMsDfHInT9rhasXY9eshESl8x5mHbtGG3wQJuFm5v8rWG6kCd1mgGQy4hwaaVK0JKmtGMFCp9bqZaWaWo1wvRVBxoIYwfaAHD+LwDxz6/VIWqc1eyuzutoro5UxfNiZ41FOgv6trZp2y5M5q/RigplFIMdjItqkTexUgLHI3lNg6YNlFsypThw841yFRFWlhpTeK+Y7PvqvaVaM7csh6Lj+8v6HY8vXHPFBdII7Aj6XixGkjTmDFG4WaomDVkV8Obm48WvJ9RxT7BUh5m8eoQ/gCAncn2ZJSltPiz4xnVHAI=
+    # BINTRAY_API_KEY
+    - secure: 17jd1NhMPctuom+ijVFjET3Hd7UyP5lFrTAPDd30vUD3+szh4/dCFe5aD94LnjALs8pkNGGOxJyJwf/Ps3tLvHS+/p0qz0FpxQFJL42kV7+ZwDZNkF4QegcX23p80bhTMga+ifbHyo4jY39kvYSioA+tQ+1DgRmjjmo/BUzYWLL38M1nnHgEgy8yKLOveOW98GQBMQQBsrRg+71jj35SuNQj8it9cq0j/j1pbXKNKNhVPkv46oZh+hVWU/okvqz3/oKMvsw4dr3/3u1MsQDBhVmBowwxQVVbiTUkh9lkJ9cPGmMRm6wyX6duUpraBJNi5khNAfa+pscRD9UzoVmxZGtPpme79E7tzTQm86hKJEXkcfpbqCcjEMil3KPl7b8rQYvBccMyrnMPf0b+pqS5NHkLCNP7VKqtg0WMlkJKle5u9fU32dMNP2cKgnFj/rp119jzYql0i7Xo7MobU6v5Fwrfu5Aq+oInm3s5qKqbTMWzTYUMFJNGL/6wRVhs2vVrqn4QelkKRW7U/QijLJCa8daDddWXG7AjhjSMqvqjqs9hX/BkfITA4xbKgneDfeFian7qbKPl7OItkrv8Na1WwwP8LxJUrHIkuShxCUp3zapeYL8Mvb1+66gpAXfdc3SOkykL3I4RvMwTdExCN5Hgp/RX8Er+oifQjTTgjg/B4X0=
+    # BINTRAY_GPG_PASSPHRASE
+    - secure: oM68l1+8BUQkn8UPIEwQwmQblXXh6r08HxFF8Bp+i0ZwHZSC9w9wcu7TNuoZl6ra+qWFnfyrfF+V2Uf3CR1/A4rjl46WXgmzUrmbZSh2TKXLoaNyT8goTLiCKjaHrhs22WVl4wQIe+UVqB1IJEIkC/rrwiIJ/gm0oOqG5cH3Uq9hAjTEdF1zL/aMmwpSnUtwGAL5+VHRtogWye/kVyZiJRIzRxw51gW9AoWp0beo0ku7K3n9T2U1ocjMgaQtxXE7/9iY/3PQTi6t3R+XgklAxvjyHw2H0lPMqa0fG/oG5znW7rDLap+s//0LKX9ajSi6kFA1t7eDRu+REmeNzyaOTPMf869KmbkK8YxCPwCThyEaBWYxFaxzDXrYKpo/HYEIv/KswsCHPS7msyZDlQyggj5s4oN24UVIi+VGI5+uATwfbAR7/TgaWDR4pbS4ZNFUXfzvoON9C6TU/8eN0We2o7hDZBGZwgoRUnsBUHkl7VU5YZWCT9pGDxWYN8dRrbtAXzLQa9ITFaMN3ohgvaJMg8souTtlgoXXBfEMGsflK8FB7I2H9V640TaDQEf3LbY4Aw4TTc3f0BZjYhW/N5QZgGKwcX3JG9qjQP++S1ct59NnoF0/Bjjl+wYysqHHwWluHA0ks6STvNHDwv9dgg1e+OLtM36KjEK9bgIU/AbRhk4=
+jdk: oraclejdk8
+os:
+  - linux
+sudo: false
+
+script:
+  - if [ ! -z "$TRAVIS_TAG" ]; then ./gradlew clean zapic:assembleRelease zapic:bintrayUpload; fi
+  - if [ -z "$TRAVIS_TAG" ]; then ./gradlew clean zapic:assembleRelease; fi
+
+before_deploy:
+  - cd "$TRAVIS_BUILD_DIR/zapic/build/outputs/aar/"
+  - mv ./zapic-release.aar ./com.zapic.sdk.android.aar
+  - zip "Zapic-SDK-Android-$TRAVIS_TAG.zip" ./com.zapic.sdk.android.aar
+  - mv "Zapic-SDK-Android-$TRAVIS_TAG.zip" "$TRAVIS_BUILD_DIR/"
+  - cd "$TRAVIS_BUILD_DIR/"
+
+before_cache:
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+
+deploy:
+  provider: releases
+  api_key:
+    secure: g4ACNdWiJ3GF3OA6VnqxAApfV8e3qs1A6PgyytmNuoPyPEapTCtGupxiMZKbRt5kgevWtpu3y3YziGGK6Du9tXgPc/T6DN/+mzYPgZO8zHQDVDnR9unkk7/PunH0PL16jEa8eo0I4OkVxZLVS5byjjRJrYy1nDKj4QRX49wuOFc2vQft3/HCHIIjhpJprWpDe2t/9qbi8ETfeT8qW5mR3jACC54lfOeIK1HH9dlogX3XT11AY0g3aqUtix5QMam8BIzPoEPa7iqERugQnAJ7lkijmurToqHG6WeHPvlYiPzCLiVQj0mYSQ6wVaa3sdbwJhBy/XF5Oggkjh06EOt/Fuwt8+/Lt2tfJ8TlIUVZLxDr583eSUwUlUrM0+lVWdZ9jyMCQiEaEtT4XGWb+5RqK0rwwdQskvmudcA2vLe/HQydt6nnkkR9Cy4o9hmGcAqNCTAR3Gl/uyeANNuuu6gIh66VuWZABHIWVtIK6fPwDBdRjGuX5/xoN9nWKfbCVzV97MtJk2aiU4OLtztoFyDlPc2t76vNsCPmpdPiBU6LVeacbzex56f1PuBmAxLs9DYWV10gKn4z14AygiFkyw2sJGarrnt58ANNJFALWNG18fiZEJ5qXW9w0wQ2lKmc2EaxuPSmDV7gZ6wf0eP0DF+Hh+cepghDDqfN6uPVSSbQuNU=
+  file: "Zapic-SDK-Android-$TRAVIS_TAG.zip"
+  skip_cleanup: true
+  tag_name: $TRAVIS_TAG
+  target_commitish: $TRAVIS_COMMIT
+  name: $TRAVIS_TAG
+  draft: true
+  on:
+    repo: ZapicInc/Zapic-SDK-Android
+    tags: true
