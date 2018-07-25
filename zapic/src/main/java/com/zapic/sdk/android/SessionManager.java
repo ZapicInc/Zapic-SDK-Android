@@ -8,6 +8,7 @@ import android.support.annotation.CheckResult;
 import android.support.annotation.MainThread;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.webkit.WebView;
 
 import org.json.JSONException;
@@ -20,6 +21,12 @@ final class SessionManager {
      * Identifies the "SUBMIT_EVENT" action type.
      */
     private static final int ACTION_TYPE_SUBMIT_EVENT = 1000;
+
+    /**
+     * The tag used to identify log messages.
+     */
+    @NonNull
+    private static final String TAG = "SessionManager";
 
     /**
      * The message handler used to invoke methods on the UI thread.
@@ -90,6 +97,10 @@ final class SessionManager {
      */
     @MainThread
     private void dispatch(@NonNull final JSONObject message) {
+        if (BuildConfig.DEBUG) {
+            Log.i(TAG, String.format("Sending Zapic web page message: %s", message.toString()));
+        }
+
         assert mWebView != null : "mWebView == null";
         mWebView.evaluateJavascript("window.zapic.dispatch(" + message.toString() + ")", null);
     }

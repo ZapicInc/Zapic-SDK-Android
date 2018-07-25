@@ -57,6 +57,7 @@ public final class Zapic {
     /**
      * The name of the OneSignal push notification tag.
      */
+    @SuppressWarnings("unused")
     public static final String NOTIFICATION_TAG = "zapic_player_token";
 
     /**

@@ -136,6 +136,10 @@ final class ViewManager {
      */
     @MainThread
     private void dispatch(@NonNull final JSONObject message) {
+        if (BuildConfig.DEBUG) {
+            Log.i(TAG, String.format("Sending Zapic web page message: %s", message.toString()));
+        }
+
         assert mWebView != null : "mWebView == null";
         mWebView.evaluateJavascript("window.zapic.dispatch(" + message.toString() + ")", null);
     }
