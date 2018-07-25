@@ -1,6 +1,6 @@
 # Zapic SDK for Android
 
-[![Bintray](https://img.shields.io/bintray/v/zapic/maven/zapic-sdk-android.svg)](https://bintray.com/zapic/maven/zapic-sdk-android) ![Maven Central](https://img.shields.io/maven-central/v/com.zapic.sdk.android/zapic-sdk-android.svg) [![CodeFactor](https://www.codefactor.io/repository/github/zapicinc/zapic-sdk-android/badge)](https://www.codefactor.io/repository/github/zapicinc/zapic-sdk-android) [![MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Chat on Discord](https://img.shields.io/discord/430949891104309249.svg?logo=discord)](https://discord.gg/uC3k5D7) [![Twitter Follow](https://img.shields.io/twitter/follow/zapicinc.svg?style=social&label=Follow)](https://twitter.com/ZapicInc)
+[![Travis CI](https://travis-ci.org/ZapicInc/Zapic-SDK-Android.svg?branch=travis)](https://travis-ci.org/ZapicInc/Zapic-SDK-Android) [![Bintray](https://img.shields.io/bintray/v/zapic/maven/zapic-sdk-android.svg)](https://bintray.com/zapic/maven/zapic-sdk-android) ![Maven Central](https://img.shields.io/maven-central/v/com.zapic.sdk.android/zapic-sdk-android.svg) [![CodeFactor](https://www.codefactor.io/repository/github/zapicinc/zapic-sdk-android/badge)](https://www.codefactor.io/repository/github/zapicinc/zapic-sdk-android) [![MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Chat on Discord](https://img.shields.io/discord/430949891104309249.svg?logo=discord)](https://discord.gg/uC3k5D7) [![Twitter Follow](https://img.shields.io/twitter/follow/zapicinc.svg?style=social&label=Follow)](https://twitter.com/ZapicInc)
 
 Copyright (c) 2017-2018 Zapic, Inc.
 
@@ -88,26 +88,16 @@ The demo application and library are built from source using Android Studio 3.1 
 
 ### Releasing the Library
 
-First, bump the library module's `versionCode` and `versionName` in `build.gradle`.
-
-Second, build and upload the library artifacts to BinTray.
-
-On Linux/Mac OS, execute the following:
-
-```sh
-$ export BINTRAY_USER=XXXXXXXX
-$ export BINTRAY_API_KEY=XXXXXXXX
-$ export BINTRAY_GPG_PASSPHRASE=XXXXXXXX
-$ ./gradlew clean zapic:assembleRelease zapic:bintrayUpload
-```
-
-On Windows, execute the following:
-
-```sh
-> set BINTRAY_USER=XXXXXXXX
-> set BINTRAY_API_KEY=XXXXXXXX
-> set BINTRAY_GPG_PASSPHRASE=XXXXXXXX
-> .\gradlew.bat clean zapic:assembleRelease zapic:bintrayUpload
-```
-
-Third, create a new tag in the Git repository. Create a new release on GitHub with the changelog and AAR artifact.
+1. Bump the library module's `versionName` in `build.gradle`. (The bump should follow the [SemVer 2.0](https://semver.org/) standard.)
+1. Create a commit with the new version.
+1. Push the commit to the `master` branch on GitHub.
+   - Ensure the Travis CI build completes without errors.
+1. Tag the commit on GitHub. The tag name should match the `versionName`.
+   - Ensure the Travis CI build and deploy completes without errors.
+1. Edit the release notes on the new GitHub release.
+1. Publish the new GitHub release.
+1. Edit the new Bintray package version. Namely, fix the "unspecified" VCS tag in the package version properties.
+1. Publish the new Bintray package artifacts.
+1. Sync the Bintray package with Maven Central.
+1. Update the package version in the Android integration documentation.
+1. (Optional) Announce the new package on Discord.
