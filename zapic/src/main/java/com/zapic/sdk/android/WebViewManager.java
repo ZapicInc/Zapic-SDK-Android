@@ -274,6 +274,55 @@ final class WebViewManager {
 //    }
 
     /**
+     * Decodes a Base64-encoded image and saves it to the share folder.
+     *
+     * @param encodedImage The Base64-encoded image.
+     * @return The image URI and mime-type.
+     */
+    @NonNull
+    @WorkerThread
+    private SharedImage decodeImageAndSaveToShare(@NonNull final String encodedImage) throws IllegalArgumentException, IOException {
+        byte[] imageBytes = Base64.decode(encodedImage, Base64.DEFAULT);
+
+        // Get the mime type without allocating memory for the pixels.
+        final BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length, options);
+        final String imageMimeType = options.outMimeType;
+        if (imageMimeType == null) {
+            throw new IllegalArgumentException("The image type is not supported");
+        }
+
+        final File imageDirectory = new File(mApplicationContext.getCacheDir(), "Zapic" + File.separator + "Share");
+        if (!imageDirectory.isDirectory() && !imageDirectory.mkdirs()) {
+            throw new IllegalStateException("The image share folder does not exist and cannot be created");
+        }
+
+        String imageFileExtension = MimeTypeMap.getSingleton().getExtensionFromMimeType(imageMimeType);
+        if (imageFileExtension == null) {
+            throw new IllegalArgumentException("The image type is not supported");
+        }
+
+        final File imageFile = new File(imageDirectory, "IMG_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date()) + "." + imageFileExtension);
+        for (int i = 0; ; i++) {
+            try {
+                BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(imageFile));
+                outputStream.write(imageBytes);
+                outputStream.flush();
+                outputStream.close();
+
+                final String packageName = mApplicationContext.getPackageName();
+                return new SharedImage(imageMimeType, FileProvider.getUriForFile(mApplicationContext, packageName + ".zapic", imageFile));
+            } catch (IOException e) {
+                Log.e(TAG, "Failed to write image to the share folder", e);
+                if (i >= 3) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    /**
      * Handles the "APP_FAILED" action. This notifies the various view components that the Zapic
      * web page has failed to start.
      */
@@ -534,110 +583,117 @@ final class WebViewManager {
      */
     @WorkerThread
     private void onShowShareMenuDispatched(@NonNull final JSONObject action) {
-        String text;
-        String url;
-        String encodedImage;
+        final JSONObject payload;
+        final String target;
         try {
-            final JSONObject payload = action.getJSONObject("payload");
-            text = payload.optString("text");
-            url = payload.optString("url");
-            encodedImage = payload.optString("image");
+            payload = action.getJSONObject("payload");
+            target = payload.optString("target", "sheet");
         } catch (JSONException e) {
             Log.e(TAG, "The Zapic web page SHOW_SHARE_MENU message is invalid", e);
             return;
         }
 
-        String message = "";
-        if (!"".equals(text)) {
-            message = text;
-        }
-
-        if (!"".equals(url)) {
-            if ("".equals(message)) {
-                message = url;
-            } else {
-                message += " " + url;
-            }
-        }
-
-        if ("".equals(message)) {
-            message = null;
-        }
-
-        String imageMimeType;
-        Uri imageUri;
-        if (!encodedImage.equals("")) {
-            byte[] imageBytes = Base64.decode(encodedImage, Base64.DEFAULT);
-            try {
-                // Get the mime type without allocating memory for the pixels.
-                final BitmapFactory.Options options = new BitmapFactory.Options();
-                options.inJustDecodeBounds = true;
-                BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length, options);
-                imageMimeType = options.outMimeType;
-            } catch (IllegalArgumentException e) {
-                Log.e(TAG, "The Zapic web page SHOW_SHARE_MENU message image is invalid", e);
-                imageMimeType = null;
-            }
-
-            File imageFile;
-            if (imageMimeType != null) {
-                final File imageDirectory = new File(mApplicationContext.getCacheDir(), "Zapic" + File.separator + "Share");
-                if (!imageDirectory.isDirectory() && !imageDirectory.mkdirs()) {
-                    imageFile = null;
-                } else {
-                    String imageFileExtension = MimeTypeMap.getSingleton().getExtensionFromMimeType(imageMimeType);
-                    if (imageFileExtension == null) {
-                        imageFileExtension = "file";
-                    }
-
-                    imageFile = new File(imageDirectory, "IMG_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date()) + "." + imageFileExtension);
-                }
-            } else {
-                imageFile = null;
-            }
-
-            if (imageFile != null) {
-                try {
-                    BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(imageFile));
-                    outputStream.write(imageBytes);
-                    outputStream.flush();
-                    outputStream.close();
-
-                    final String packageName = mApplicationContext.getPackageName();
-                    imageUri = FileProvider.getUriForFile(mApplicationContext, packageName + ".zapic", imageFile);
-                } catch (IllegalArgumentException | IOException e) {
-                    imageUri = null;
-                }
-            } else {
-                imageUri = null;
-            }
-        } else {
-            imageMimeType = null;
-            imageUri = null;
-        }
-
+        boolean showChooser = false;
         Intent intent;
-        if (imageUri != null) {
-            intent = new Intent(Intent.ACTION_SEND);
-            intent.setType(imageMimeType);
-            intent.putExtra(Intent.EXTRA_STREAM, imageUri);
-            if (message != null) {
-                intent.putExtra(Intent.EXTRA_TEXT, message);
-            }
-            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        } else if (message != null) {
-            intent = new Intent(Intent.ACTION_SEND);
+        if (target.equalsIgnoreCase("email")) {
+            final String subject = payload.optString("subject");
+            final String body = payload.optString("body");
+            final String url = payload.optString("url");
+
+            intent = new Intent(Intent.ACTION_SENDTO);
+            intent.setData(Uri.parse("mailto:"));
             intent.setType("text/plain");
-            intent.putExtra(Intent.EXTRA_TEXT, message);
+
+            if (subject != null && subject.length() != 0) {
+                intent.putExtra(Intent.EXTRA_SUBJECT, subject);
+            }
+
+            if (body != null && body.length() != 0) {
+                if (url != null && url.length() != 0) {
+                    intent.putExtra(Intent.EXTRA_TEXT, body + "\n" + url);
+                } else {
+                    intent.putExtra(Intent.EXTRA_TEXT, body);
+                }
+            } else if (url != null && url.length() != 0) {
+                intent.putExtra(Intent.EXTRA_TEXT, url);
+            }
+        } else if (target.equalsIgnoreCase("sms")) {
+            final String subject = payload.optString("subject");
+            final String text = payload.optString("text");
+            final String url = payload.optString("url");
+            final String encodedImage = payload.optString("image");
+
+            intent = new Intent(Intent.ACTION_SENDTO);
+            if (encodedImage != null) {
+                final SharedImage image;
+                try {
+                    image = decodeImageAndSaveToShare(encodedImage);
+                } catch (IllegalArgumentException | IOException e) {
+                    Log.e(TAG, "The Zapic web page SHOW_SHARE_MENU message is invalid", e);
+                    return;
+                }
+
+                intent.setData(Uri.parse("mmsto:"));
+                intent.setType(image.getImageMimeType());
+                intent.putExtra(Intent.EXTRA_STREAM, image.getImageUri());
+                intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } else {
+                intent.setData(Uri.parse("smsto:"));
+                intent.setType("text/plain");
+            }
+
+            if (subject != null && subject.length() != 0) {
+                intent.putExtra("subject", subject);
+            }
+
+            if (text != null && text.length() != 0) {
+                if (url != null && url.length() != 0) {
+                    intent.putExtra("sms_body", text + "\n" + url);
+                } else {
+                    intent.putExtra("sms_body", text);
+                }
+            } else if (url != null && url.length() != 0) {
+                intent.putExtra("sms_body", url);
+            }
         } else {
-            intent = null;
+            showChooser = true;
+
+            final String text = payload.optString("text");
+            final String url = payload.optString("url");
+            final String encodedImage = payload.optString("image");
+
+            intent = new Intent(Intent.ACTION_SEND);
+            if (encodedImage != null && encodedImage.length() != 0) {
+                final SharedImage image;
+                try {
+                    image = decodeImageAndSaveToShare(encodedImage);
+                } catch (IllegalArgumentException | IOException e) {
+                    Log.e(TAG, "The Zapic web page SHOW_SHARE_MENU message is invalid", e);
+                    return;
+                }
+
+                intent.setType(image.getImageMimeType());
+                intent.putExtra(Intent.EXTRA_STREAM, image.getImageUri());
+                intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } else {
+                intent.setType("text/plain");
+            }
+
+            if (text != null && text.length() != 0) {
+                if (url != null && url.length() != 0) {
+                    intent.putExtra(Intent.EXTRA_TEXT, text + "\n" + url);
+                } else {
+                    intent.putExtra(Intent.EXTRA_TEXT, text);
+                }
+            } else if (url != null && url.length() != 0) {
+                intent.putExtra(Intent.EXTRA_TEXT, url);
+            }
         }
 
-        if (intent != null) {
-            Map<String, Object> args = new HashMap<>();
-            args.put("intent", intent);
-            mHandler.obtainMessage(ACTION_TYPE_SHOW_SHARE_MENU, args).sendToTarget();
-        }
+        Map<String, Object> args = new HashMap<>();
+        args.put("intent", intent);
+        args.put("showChooser", showChooser);
+        mHandler.obtainMessage(ACTION_TYPE_SHOW_SHARE_MENU, args).sendToTarget();
     }
 
     /**
@@ -645,7 +701,11 @@ final class WebViewManager {
      */
     @MainThread
     private void onShowShareMenuHandled(@NonNull final Map<String, Object> args) {
-        mViewManager.showShareChooser((Intent) args.get("intent"));
+        if ((boolean) args.get("showChooser")) {
+            mViewManager.showShareChooser((Intent) args.get("intent"));
+        } else {
+            mViewManager.showShare((Intent) args.get("intent"));
+        }
     }
 
     /**
@@ -812,6 +872,51 @@ final class WebViewManager {
             mWebView.loadUrl("about:blank");
         } else {
             mWebView.loadUrl(URL_WITH_SLASH);
+        }
+    }
+
+    private class SharedImage {
+        /**
+         * The image mime-type.
+         */
+        @NonNull
+        private final String mImageMimeType;
+
+        /**
+         * The image URI.
+         */
+        @NonNull
+        private final Uri mImageUri;
+
+        /**
+         * Creates a new {@link WebViewManager} instance.
+         *
+         * @param imageMimeType The image mime-type.
+         * @param imageUri      The image URI.
+         */
+        SharedImage(@NonNull final String imageMimeType, @NonNull final Uri imageUri) {
+            mImageMimeType = imageMimeType;
+            mImageUri = imageUri;
+        }
+
+        /**
+         * Gets the image mime-type.
+         *
+         * @return The image mime-type.
+         */
+        @NonNull
+        String getImageMimeType() {
+            return mImageMimeType;
+        }
+
+        /**
+         * Gets the image URI.
+         *
+         * @return The image URI.
+         */
+        @NonNull
+        Uri getImageUri() {
+            return mImageUri;
         }
     }
 

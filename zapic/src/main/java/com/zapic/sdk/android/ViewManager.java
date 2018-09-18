@@ -482,9 +482,25 @@ final class ViewManager {
     }
 
     /**
+     * Shows an app to share content.
+     * <p>
+     * This will ignore the intent if a {@link ZapicActivity} instance does not exist.
+     *
+     * @param intent The intent.
+     */
+    @MainThread
+    void showShare(@NonNull final Intent intent) {
+        if (mActivity != null) {
+            if (intent.resolveActivity(mActivity.getPackageManager()) != null) {
+                mActivity.startActivity(intent);
+            }
+        }
+    }
+
+    /**
      * Shows an app chooser to share content on the {@link ZapicActivity} instance.
      * <p>
-     * This will ignore the app chooser if a {@link ZapicActivity} instance does not exist.
+     * This will ignore the intent if a {@link ZapicActivity} instance does not exist.
      *
      * @param intent The intent.
      */
