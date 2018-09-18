@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -39,16 +40,22 @@ import java.util.zip.GZIPOutputStream;
  */
 final class FileManager {
     /**
-     * The tag used to identify log messages.
-     */
-    @NonNull
-    private static final String TAG = "CacheManager";
-
-    /**
      * The events file name.
      */
     @NonNull
     private static final String EVENTS_FILE_NAME = "events.json.gz";
+
+    /**
+     * The installation ID file name.
+     */
+    @NonNull
+    private static final String INSTALLATION_ID_NAME = "id.json.gz";
+
+    /**
+     * The tag used to identify log messages.
+     */
+    @NonNull
+    private static final String TAG = "CacheManager";
 
     /**
      * The web page file name.
@@ -61,6 +68,12 @@ final class FileManager {
      */
     @NonNull
     private final String mCacheDir;
+
+    /**
+     * The files directory.
+     */
+    @NonNull
+    private final String mFilesDir;
 
     /**
      * The share directory.
@@ -77,6 +90,7 @@ final class FileManager {
     @AnyThread
     FileManager(@NonNull final Context context) {
         mCacheDir = new File(context.getCacheDir(), "Zapic").getAbsolutePath();
+        mFilesDir = new File(context.getFilesDir(), "Zapic").getAbsolutePath();
         mShareDir = new File(mCacheDir, "Share").getAbsolutePath();
     }
 
@@ -254,6 +268,38 @@ final class FileManager {
     }
 
     /**
+     * Gets the installation ID from the disk.
+     * <p>
+     * This is a potentially long-running, blocking task and must be invoked on a background thread.
+     *
+     * @param cancellationToken The cancellation token.
+     * @return The installation ID or {@code null} if it does not exist.
+     */
+    @Nullable
+    @WorkerThread
+    UUID getInstallationId(@NonNull final CancellationToken cancellationToken) {
+        for (int i = 0; i < 3; i++) {
+            try {
+                final String content = readCompressedTextFile(new File(mFilesDir, INSTALLATION_ID_NAME).getAbsolutePath(), cancellationToken);
+                if (content == null) {
+                    return null;
+                }
+
+                final JSONObject json = new JSONObject(content);
+                final String id = json.getString("id");
+                return UUID.fromString(id);
+            } catch (IllegalArgumentException | JSONException e) {
+                Log.e(TAG, "Failed to parse installation ID", e);
+                return null;
+            } catch (IOException e) {
+                Log.e(TAG, "Failed to read installation ID", e);
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Gets the Zapic web page from the cache.
      * <p>
      * This is a potentially long-running, blocking task and must be invoked on a background thread.
@@ -322,6 +368,41 @@ final class FileManager {
         }
 
         return false;
+    }
+
+    /**
+     * Puts the specified installation ID in the disk.
+     * <p>
+     * This is a potentially long-running, blocking task and must be invoked on a background thread.
+     *
+     * @param installationId    The installation ID.
+     * @param cancellationToken The cancellation token.
+     * @return {@code true} if the installation ID was saved; {@code false} if the installation ID
+     * was not saved.
+     */
+    @WorkerThread
+    boolean putInstallationId(@NonNull final UUID installationId, @NonNull final CancellationToken cancellationToken) {
+        final String content;
+        try {
+            final JSONObject json = new JSONObject()
+                    .put("id", installationId.toString());
+
+            content = json.toString();
+        } catch (JSONException e) {
+            Log.e(TAG, "Failed to encode installation ID", e);
+            return false;
+        }
+
+        for (int i = 0; i < 3; i++) {
+            try {
+                writeCompressedTextFile(new File(mFilesDir, INSTALLATION_ID_NAME).getAbsolutePath(), content, cancellationToken);
+                return true;
+            } catch (IOException e) {
+                Log.e(TAG, "Failed to write installation ID to disk", e);
+            }
+        }
+
+        return  false;
     }
 
     /**
