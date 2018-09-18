@@ -1,7 +1,7 @@
 plugins {
     id 'com.android.library'
     id 'digital.wup.android-maven-publish'
-    id 'com.jfrog.bintray' version '1.8.2'
+    id 'com.jfrog.bintray' version '1.8.4'
 }
 
 configurations {
@@ -39,7 +39,7 @@ dependencies {
     implementation 'com.android.support:support-annotations:27.1.1'
     implementation 'com.android.support:support-core-utils:27.1.1'
     compileOnly 'com.android.support:support-v4:27.1.1'
-    compileOnly 'com.google.android.gms:play-services-auth:15.0.1'
+    compileOnly 'com.google.android.gms:play-services-auth:16.0.0'
     compileOnly 'com.google.android.gms:play-services-games:15.0.1'
 
     testImplementation 'junit:junit:4.12'

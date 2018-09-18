@@ -5,10 +5,9 @@ android:
     # Updates Android SDK Platform-Tools and Android SDK Tools to latest version
     - tools
     - platform-tools
-    - tools
     # Installs the target Android SDK Build-Tools and Android SDK Platform
-    - build-tools-27.0.3
-    - android-27
+    - build-tools-28.0.2
+    - android-28
 branches:
   only:
     - master
