@@ -38,9 +38,9 @@ dependencies {
     implementation 'com.zapic.sdk.android:zapic-sdk-android:1.2.1'
     implementation 'com.android.support:support-annotations:27.1.1'
     implementation 'com.android.support:support-fragment:27.1.1'
-    implementation 'com.onesignal:OneSignal:3.9.1'
+    implementation 'com.onesignal:OneSignal:3.10.1'
     implementation 'com.squareup:seismic:1.0.2'
-    implementation 'io.branch.sdk.android:library:2.18.1'
+    implementation 'io.branch.sdk.android:library:2.19.3'
 
     // Note: Replace the above "zapic-sdk-android" dependency from JCenter with the following local
     // dependency for debugging and testing.
