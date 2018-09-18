@@ -461,8 +461,8 @@ final class ViewManager {
             alerter = alerter.setText(text);
         }
 
-        final JSONObject parameters = notification.getParameters();
-        if (parameters != null) {
+        final JSONObject metadata = notification.getMetadata();
+        if (metadata != null) {
             alerter = alerter.setOnClickListener(mAlertListener);
         }
 
@@ -586,9 +586,9 @@ final class ViewManager {
         public void onClick(@Nullable final View view) {
             final Notification notification = mNotifications.peek();
             if (notification != null) {
-                final JSONObject parameters = notification.getParameters();
-                if (parameters != null) {
-                    Zapic.handleInteraction(parameters);
+                final JSONObject metadata = notification.getMetadata();
+                if (metadata != null) {
+                    Zapic.handleInteraction(metadata);
                 }
             }
         }

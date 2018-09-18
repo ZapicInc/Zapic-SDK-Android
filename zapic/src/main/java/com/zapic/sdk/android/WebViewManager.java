@@ -463,13 +463,13 @@ final class WebViewManager {
         String title;
         String subtitle;
         String encodedIcon;
-        JSONObject parameters;
+        JSONObject metadata;
         try {
             final JSONObject payload = action.getJSONObject("payload");
             title = payload.getString("title");
             subtitle = payload.optString("subtitle");
             encodedIcon = payload.optString("icon");
-            parameters = payload.optJSONObject("parameters");
+            metadata = payload.optJSONObject("metadata");
         } catch (JSONException e) {
             Log.e(TAG, "The Zapic web page SHOW_BANNER message is invalid", e);
             return;
@@ -501,7 +501,7 @@ final class WebViewManager {
         args.put("title", title);
         args.put("subtitle", subtitle);
         args.put("icon", icon);
-        args.put("parameters", parameters);
+        args.put("metadata", metadata);
         mHandler.obtainMessage(ACTION_TYPE_SHOW_BANNER, args).sendToTarget();
     }
 
@@ -510,7 +510,7 @@ final class WebViewManager {
      */
     @MainThread
     private void onShowBannerHandled(Map<String, Object> args) {
-        mViewManager.showNotification(new Notification((String) args.get("title"), (String) args.get("subtitle"), (Bitmap) args.get("icon"), (JSONObject) args.get("parameters")));
+        mViewManager.showNotification(new Notification((String) args.get("title"), (String) args.get("subtitle"), (Bitmap) args.get("icon"), (JSONObject) args.get("metadata")));
     }
 
     /**

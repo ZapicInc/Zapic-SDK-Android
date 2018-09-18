@@ -22,10 +22,10 @@ final class Notification {
     private final Bitmap mImage;
 
     /**
-     * The parameters.
+     * The metadata.
      */
     @Nullable
-    private final JSONObject mParameters;
+    private final JSONObject mMetadata;
 
     /**
      * The text.
@@ -42,18 +42,18 @@ final class Notification {
     /**
      * Creates a new {@link Notification} instance.
      *
-     * @param title      The title.
-     * @param text       The text. If non-{@code null}, this text is rendered smaller and below
-     *                   {@code title}.
-     * @param image      The image. If non-{@code null}, this image is rendered at the start of the
-     *                   view. If {@code null}, the Zapic logo is rendered at the start of the view.
-     * @param parameters The parameters. If non-{@code null}, dispatches an interaction event when
-     *                   the notification message is tapped.
+     * @param title    The title.
+     * @param text     The text. If non-{@code null}, this text is rendered smaller and below
+     *                 {@code title}.
+     * @param image    The image. If non-{@code null}, this image is rendered at the start of the
+     *                 view. If {@code null}, the Zapic logo is rendered at the start of the view.
+     * @param metadata The metadata. If non-{@code null}, dispatches an interaction event when the
+     *                 notification message is tapped.
      */
     @AnyThread
-    Notification(@NonNull final String title, @Nullable final String text, @Nullable final Bitmap image, @Nullable final JSONObject parameters) {
+    Notification(@NonNull final String title, @Nullable final String text, @Nullable final Bitmap image, @Nullable final JSONObject metadata) {
         mImage = image;
-        mParameters = parameters;
+        mMetadata = metadata;
         mText = text;
         mTitle = title;
     }
@@ -74,17 +74,17 @@ final class Notification {
     }
 
     /**
-     * Gets the parameters.
+     * Gets the metadata.
      * <p>
      * If non-{@code null}, dispatches an interaction event when the notification message is tapped.
      *
-     * @return The parameters or {@code null}.
+     * @return The metadata or {@code null}.
      */
     @AnyThread
     @CheckResult
     @Nullable
-    public JSONObject getParameters() {
-        return mParameters;
+    public JSONObject getMetadata() {
+        return mMetadata;
     }
 
     /**
