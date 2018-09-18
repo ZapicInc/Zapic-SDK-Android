@@ -19,10 +19,22 @@ public final class ZapicPages {
     public static final String CHALLENGE_LIST = "Challenges";
 
     /**
-     * Identifies a page that shows the a form to create a new challenge for the current game.
+     * Identifies a page that shows the list of competitions for the current game.
+     */
+    @NonNull
+    public static final String COMPETITION_LIST = "Competitions";
+
+    /**
+     * Identifies a page that shows the create a new challenge form for the current game.
      */
     @NonNull
     public static final String CREATE_CHALLENGE = "CreateChallenge";
+
+    /**
+     * Identifies a page that shows the login form for the current player.
+     */
+    @NonNull
+    public static final String LOGIN = "Login";
 
     /**
      * Identifies a page that shows the profile for the current player.
