@@ -2,6 +2,8 @@ package com.zapic.sdk.android;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.support.annotation.AnyThread;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -330,6 +333,33 @@ final class WebPageAsyncTask extends AsyncTask<Void, Integer, WebPage> implement
             return webPage;
         }
 
+        UUID installationId = mFileManager.getInstallationId(this);
+        if (installationId == null) {
+            installationId = UUID.randomUUID();
+            if (!mFileManager.putInstallationId(installationId, this)) {
+                installationId = null;
+            }
+        }
+
+        String packageName = mApplicationContext.getPackageName();
+        String versionName = null;
+        Long versionCode = null;
+        if (packageName != null && packageName.length() != 0) {
+            try {
+                PackageInfo info = mApplicationContext.getPackageManager().getPackageInfo(packageName, 0);
+                versionName = info.versionName;
+                if (Build.VERSION.SDK_INT >= 28) {
+                    versionCode = info.getLongVersionCode();
+                } else {
+                    versionCode = (long) info.versionCode;
+                }
+            } catch (PackageManager.NameNotFoundException e) {
+                e.printStackTrace();
+            }
+        } else {
+            packageName = "";
+        }
+
         final int endOfHead = startOfHead + "<head>".length();
         final String script = "<script>" +
                 "window.androidWebViewWatchdog = window.setTimeout(function () {" +
@@ -348,9 +378,12 @@ final class WebPageAsyncTask extends AsyncTask<Void, Integer, WebPage> implement
                 "      window.androidWebView.dispatch(JSON.stringify(action))" +
                 "    });" +
                 "  }," +
-                "  packageName: '" + mApplicationContext.getPackageName().replace("'", "\\'") + "', " +
-                "  androidVersion: '" + String.valueOf(Build.VERSION.SDK_INT).replace("'", "\\'") + "'," +
+                "  packageName: '" + packageName.replace("'", "\\'") + "', " +
+                "  androidVersion: '" + Integer.toString(Build.VERSION.SDK_INT, 10) + "'," +
                 "  sdkVersion: '" + BuildConfig.VERSION_NAME.replace("'", "\\'") + "'," +
+                (installationId == null ? "" : "  installId: '" + installationId.toString().replace("'", "\\'") + "',") +
+                (versionName == null ? "" : "  appVersion: '" + versionName.replace("'", "\\'") + "',") +
+                (versionCode == null ? "" : "  appBuild: '" + Long.toString(versionCode, 10) + "',") +
                 "};" +
                 "</script>".replaceAll(" +", " ");
 
